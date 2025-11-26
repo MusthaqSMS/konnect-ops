@@ -109,17 +109,32 @@ st.markdown("""
             border: 1px solid #e2e8f0;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
+
+        /* Locked Screen Styling */
+        .locked-container {
+            text-align: center;
+            padding: 50px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            margin-top: 50px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 2. SIDEBAR: SYSTEM STATUS ---
+# Initialize validation variable
+valid_model_name = None
+
 with st.sidebar:
     st.markdown("### <i class='fa-solid fa-building icon-blue'></i> KonnectOps", unsafe_allow_html=True)
     st.caption("Digital Operations Center v7.5")
     st.markdown("---")
     
     api_key = st.text_input("🔑 API Key", type="password", help="Google Gemini API Key")
-    valid_model_name = None
 
     if api_key:
         try:
@@ -194,152 +209,173 @@ def run_ai_task(prompt, task_desc="Processing"):
             return None
 
 # --- 4. MAIN APPLICATION ---
-st.markdown("# <i class='fa-solid fa-rocket icon-blue'></i> Home Konnect Digital HQ", unsafe_allow_html=True)
 
-# Tabs with minimal emojis (icons are inside)
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "Dev Console", 
-    "Content Studio", 
-    "Image Studio", 
-    "Calendar",
-    "Deluge IDE"
-])
+if valid_model_name:
+    # --- DASHBOARD UNLOCKED ---
+    st.markdown("# <i class='fa-solid fa-rocket icon-blue'></i> Home Konnect Digital HQ", unsafe_allow_html=True)
 
-# ====== TAB 1: LANDING PAGE FACTORY (Developer Mode) ======
-with tab1:
-    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-code"></i> Landing Page Console</h3>', unsafe_allow_html=True)
-    st.info("Safe Mode: Replaces content while preserving exact HTML structure.")
-    
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown("#### <i class='fa-solid fa-bullseye'></i> Target Project", unsafe_allow_html=True)
-        project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
-        location = st.text_input("New Location", placeholder="e.g. Anna Nagar")
-        price = st.text_input("New Price", placeholder="e.g. 1.5 Cr")
+    # Tabs with minimal emojis (icons are inside)
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "Dev Console", 
+        "Content Studio", 
+        "Image Studio", 
+        "Calendar",
+        "Deluge IDE"
+    ])
+
+    # ====== TAB 1: LANDING PAGE FACTORY (Developer Mode) ======
+    with tab1:
+        st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-code"></i> Landing Page Console</h3>', unsafe_allow_html=True)
+        st.info("Safe Mode: Replaces content while preserving exact HTML structure.")
         
-    with c2:
-        st.markdown("#### <i class='fa-solid fa-magnifying-glass'></i> Search & Replace", unsafe_allow_html=True)
-        old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
-        old_location = st.text_input("Old Location to Replace", value="Porur")
-        old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
-        old_about = st.text_area("Old Description (Context)", height=68, help="Paste a paragraph from the old HTML. The AI will rewrite it for the new project.")
-
-    html_code = st.text_area("Source Code (HTML)", height=300, placeholder="<!-- Paste your live HTML code here -->")
-
-    if st.button("⚡ Build & Compile Page"):
-        if html_code:
-            # 1. Technical Swap (Safe Python String Replacement - Won't break divs)
-            final_html = html_code.replace(old_name, project_name)
-            if old_price: final_html = final_html.replace(old_price, price)
-            if old_location: final_html = final_html.replace(old_location, location)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("#### <i class='fa-solid fa-bullseye'></i> Target Project", unsafe_allow_html=True)
+            project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
+            location = st.text_input("New Location", placeholder="e.g. Anna Nagar")
+            price = st.text_input("New Price", placeholder="e.g. 1.5 Cr")
             
-            # 2. Content Alignment (Smart Description Swap)
-            if old_about:
-                new_about = run_ai_task(
-                    f"Write a compelling 3-sentence real estate project description for '{project_name}' located in '{location}'. Price starts at {price}. Tone: Luxury & Investment. Output: Plain text only (no markdown).",
-                    task_desc="Aligning Description Content"
+        with c2:
+            st.markdown("#### <i class='fa-solid fa-magnifying-glass'></i> Search & Replace", unsafe_allow_html=True)
+            old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
+            old_location = st.text_input("Old Location to Replace", value="Porur")
+            old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
+            old_about = st.text_area("Old Description (Context)", height=68, help="Paste a paragraph from the old HTML. The AI will rewrite it for the new project.")
+
+        html_code = st.text_area("Source Code (HTML)", height=300, placeholder="<!-- Paste your live HTML code here -->")
+
+        if st.button("⚡ Build & Compile Page"):
+            if html_code:
+                # 1. Technical Swap (Safe Python String Replacement - Won't break divs)
+                final_html = html_code.replace(old_name, project_name)
+                if old_price: final_html = final_html.replace(old_price, price)
+                if old_location: final_html = final_html.replace(old_location, location)
+                
+                # 2. Content Alignment (Smart Description Swap)
+                if old_about:
+                    new_about = run_ai_task(
+                        f"Write a compelling 3-sentence real estate project description for '{project_name}' located in '{location}'. Price starts at {price}. Tone: Luxury & Investment. Output: Plain text only (no markdown).",
+                        task_desc="Aligning Description Content"
+                    )
+                    if new_about:
+                        final_html = final_html.replace(old_about, new_about)
+                        st.toast("Project Description Updated!")
+
+                # 3. AI SEO Injection
+                seo_desc = run_ai_task(
+                    f"Write a high-ranking SEO meta description (155 chars) for {project_name} in {location}. Focus on Luxury & ROI.",
+                    task_desc="Generating SEO Metadata"
                 )
-                if new_about:
-                    final_html = final_html.replace(old_about, new_about)
-                    st.toast("Project Description Updated!")
+                
+                # Try to inject meta tag if placeholder exists
+                if "{DESC}" in final_html and seo_desc:
+                    final_html = final_html.replace("{DESC}", seo_desc)
+                    st.toast("SEO Metadata Injected!")
+                
+                st.success("Build Successful! HTML Structure Preserved.")
+                st.download_button("⬇️ Download HTML Asset", final_html, f"{project_name}.html", mime="text/html")
 
-            # 3. AI SEO Injection
-            seo_desc = run_ai_task(
-                f"Write a high-ranking SEO meta description (155 chars) for {project_name} in {location}. Focus on Luxury & ROI.",
-                task_desc="Generating SEO Metadata"
-            )
-            
-            # Try to inject meta tag if placeholder exists
-            if "{DESC}" in final_html and seo_desc:
-                final_html = final_html.replace("{DESC}", seo_desc)
-                st.toast("SEO Metadata Injected!")
-            
-            st.success("Build Successful! HTML Structure Preserved.")
-            st.download_button("⬇️ Download HTML Asset", final_html, f"{project_name}.html", mime="text/html")
+    # ====== TAB 2: CONTENT STUDIO (Marketing Mode) ======
+    with tab2:
+        st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-pen-nib"></i> Marketing Command Center</h3>', unsafe_allow_html=True)
+        content_mode = st.radio("Select Output:", ["📝 SEO Blog Post", "📱 Social Media Carousel", "📧 Client Email"], horizontal=True)
+        
+        if content_mode == "📝 SEO Blog Post":
+            title = st.text_input("Blog Title Strategy", placeholder="e.g. Top 5 Investment Hotspots in Chennai 2026")
+            if st.button("Draft Article"):
+                prompt = f"""
+                Write a comprehensive blog post for title: '{title}'.
+                Structure:
+                1. H1 Title
+                2. Catchy Introduction (Hook)
+                3. 3-4 Body Paragraphs with H2 Headers
+                4. Conclusion + CTA (Call Home Konnect)
+                5. Suggest a 'Prompt' for an Image Generator for the Cover Image.
+                """
+                result = run_ai_task(prompt, task_desc="Drafting Blog Post")
+                if result: st.markdown(result)
 
-# ====== TAB 2: CONTENT STUDIO (Marketing Mode) ======
-with tab2:
-    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-pen-nib"></i> Marketing Command Center</h3>', unsafe_allow_html=True)
-    content_mode = st.radio("Select Output:", ["📝 SEO Blog Post", "📱 Social Media Carousel", "📧 Client Email"], horizontal=True)
-    
-    if content_mode == "📝 SEO Blog Post":
-        title = st.text_input("Blog Title Strategy", placeholder="e.g. Top 5 Investment Hotspots in Chennai 2026")
-        if st.button("Draft Article"):
+        elif content_mode == "📱 Social Media Carousel":
+            topic = st.text_input("Campaign Topic", placeholder="e.g. Why buy in OMR?")
+            if st.button("Design Carousel"):
+                prompt = f"""
+                Create a 5-Slide Instagram Carousel Script for: '{topic}'.
+                Format:
+                Slide 1: Hook + Image Idea
+                Slide 2-4: Value Points
+                Slide 5: CTA + Hashtags
+                """
+                result = run_ai_task(prompt, task_desc="Designing Carousel")
+                if result: st.markdown(result)
+
+        elif content_mode == "📧 Client Email":
+            query = st.text_area("Client Query", placeholder="Asking about rental yield...")
+            if st.button("Draft Reply"):
+                result = run_ai_task(f"Write a professional reply to: {query}", task_desc="Drafting Email")
+                if result: st.text_area("Draft", result, height=300)
+
+    # ====== TAB 3: IMAGE STUDIO (NEW) ======
+    with tab3:
+        st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-palette"></i> AI Image Studio</h3>', unsafe_allow_html=True)
+        st.info("Generate prompts for Cover Images & Section Visuals.")
+        
+        img_topic = st.text_input("Describe the Image you need", placeholder="e.g. Luxury apartment living room with sea view in Chennai")
+        style = st.selectbox("Art Style", ["Photorealistic", "Minimalist Illustration", "Cinematic Render", "Digital Art"])
+        
+        if st.button("✨ Generate Image Prompt"):
             prompt = f"""
-            Write a comprehensive blog post for title: '{title}'.
-            Structure:
-            1. H1 Title
-            2. Catchy Introduction (Hook)
-            3. 3-4 Body Paragraphs with H2 Headers
-            4. Conclusion + CTA (Call Home Konnect)
-            5. Suggest a 'Prompt' for an Image Generator for the Cover Image.
+            Write a highly detailed Text-to-Image Prompt for Midjourney/DALL-E based on: '{img_topic}'.
+            Style: {style}.
+            Include details on lighting, camera angle, and color palette.
             """
-            result = run_ai_task(prompt, task_desc="Drafting Blog Post")
+            result = run_ai_task(prompt, task_desc="Engineering Image Prompt")
+            if result:
+                st.success("Copy this prompt into Midjourney/Canva/Bing Image Creator:")
+                st.code(result, language="text")
+                st.caption("Note: Direct image generation requires a paid Vertex AI account. This prompt engineer ensures you get the best result on any platform.")
+
+    # ====== TAB 4: FESTIVAL CALENDAR ======
+    with tab4:
+        st.markdown('<h3 class="icon-blue"><i class="fa-regular fa-calendar-check"></i> 2026 Marketing Calendar</h3>', unsafe_allow_html=True)
+        
+        # Static Data
+        data = {
+            "Date": ["Jan 14", "Jan 26", "Mar 04", "Mar 20", "Apr 14", "Aug 15", "Aug 26", "Sep 14", "Oct 20", "Nov 08", "Dec 25"],
+            "Festival": ["Pongal", "Republic Day", "Holi", "Ramzan *", "Tamil New Year", "Independence Day", "Onam", "Ganesh Chaturthi", "Ayudha Puja", "Diwali", "Christmas"],
+            "Day": ["Wed", "Mon", "Wed", "Fri", "Tue", "Sat", "Wed", "Mon", "Tue", "Sun", "Fri"]
+        }
+        st.table(pd.DataFrame(data))
+        
+        target_fest = st.selectbox("Pick a Festival for Campaign", data["Festival"])
+        if st.button("Plan Campaign"):
+            prompt = f"Create a 3-step Digital Marketing Campaign for '{target_fest}' targeting NRIs for Home Konnect."
+            result = run_ai_task(prompt, task_desc="Planning Campaign")
             if result: st.markdown(result)
 
-    elif content_mode == "📱 Social Media Carousel":
-        topic = st.text_input("Campaign Topic", placeholder="e.g. Why buy in OMR?")
-        if st.button("Design Carousel"):
-            prompt = f"""
-            Create a 5-Slide Instagram Carousel Script for: '{topic}'.
-            Format:
-            Slide 1: Hook + Image Idea
-            Slide 2-4: Value Points
-            Slide 5: CTA + Hashtags
-            """
-            result = run_ai_task(prompt, task_desc="Designing Carousel")
-            if result: st.markdown(result)
+    # ====== TAB 5: ZOHO HELPER (Programmer Mode) ======
+    with tab5:
+        st.markdown('<h3 class="icon-green"><i class="fa-solid fa-terminal"></i> Deluge Scripting IDE</h3>', unsafe_allow_html=True)
+        task = st.text_area("Logic Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
+        
+        if st.button("Compile Script"):
+            prompt = f"Write a production-ready Zoho Deluge script for: {task}. Include error handling and comments."
+            result = run_ai_task(prompt, task_desc="Compiling Code")
+            if result: st.code(result, language='java')
 
-    elif content_mode == "📧 Client Email":
-        query = st.text_area("Client Query", placeholder="Asking about rental yield...")
-        if st.button("Draft Reply"):
-            result = run_ai_task(f"Write a professional reply to: {query}", task_desc="Drafting Email")
-            if result: st.text_area("Draft", result, height=300)
-
-# ====== TAB 3: IMAGE STUDIO (NEW) ======
-with tab3:
-    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-palette"></i> AI Image Studio</h3>', unsafe_allow_html=True)
-    st.info("Generate prompts for Cover Images & Section Visuals.")
-    
-    img_topic = st.text_input("Describe the Image you need", placeholder="e.g. Luxury apartment living room with sea view in Chennai")
-    style = st.selectbox("Art Style", ["Photorealistic", "Minimalist Illustration", "Cinematic Render", "Digital Art"])
-    
-    if st.button("✨ Generate Image Prompt"):
-        prompt = f"""
-        Write a highly detailed Text-to-Image Prompt for Midjourney/DALL-E based on: '{img_topic}'.
-        Style: {style}.
-        Include details on lighting, camera angle, and color palette.
-        """
-        result = run_ai_task(prompt, task_desc="Engineering Image Prompt")
-        if result:
-            st.success("Copy this prompt into Midjourney/Canva/Bing Image Creator:")
-            st.code(result, language="text")
-            st.caption("Note: Direct image generation requires a paid Vertex AI account. This prompt engineer ensures you get the best result on any platform.")
-
-# ====== TAB 4: FESTIVAL CALENDAR ======
-with tab4:
-    st.markdown('<h3 class="icon-blue"><i class="fa-regular fa-calendar-check"></i> 2026 Marketing Calendar</h3>', unsafe_allow_html=True)
-    
-    # Static Data
-    data = {
-        "Date": ["Jan 14", "Jan 26", "Mar 04", "Mar 20", "Apr 14", "Aug 15", "Aug 26", "Sep 14", "Oct 20", "Nov 08", "Dec 25"],
-        "Festival": ["Pongal", "Republic Day", "Holi", "Ramzan *", "Tamil New Year", "Independence Day", "Onam", "Ganesh Chaturthi", "Ayudha Puja", "Diwali", "Christmas"],
-        "Day": ["Wed", "Mon", "Wed", "Fri", "Tue", "Sat", "Wed", "Mon", "Tue", "Sun", "Fri"]
-    }
-    st.table(pd.DataFrame(data))
-    
-    target_fest = st.selectbox("Pick a Festival for Campaign", data["Festival"])
-    if st.button("Plan Campaign"):
-        prompt = f"Create a 3-step Digital Marketing Campaign for '{target_fest}' targeting NRIs for Home Konnect."
-        result = run_ai_task(prompt, task_desc="Planning Campaign")
-        if result: st.markdown(result)
-
-# ====== TAB 5: ZOHO HELPER (Programmer Mode) ======
-with tab5:
-    st.markdown('<h3 class="icon-green"><i class="fa-solid fa-terminal"></i> Deluge Scripting IDE</h3>', unsafe_allow_html=True)
-    task = st.text_area("Logic Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
-    
-    if st.button("Compile Script"):
-        prompt = f"Write a production-ready Zoho Deluge script for: {task}. Include error handling and comments."
-        result = run_ai_task(prompt, task_desc="Compiling Code")
-        if result: st.code(result, language='java')
+else:
+    # --- LOCKED SCREEN ---
+    st.markdown("""
+    <div class="locked-container">
+        <i class="fa-solid fa-lock" style="font-size: 60px; color: #cbd5e1; margin-bottom: 20px;"></i>
+        <h2 style="color: #334155;">Dashboard Locked</h2>
+        <p style="color: #64748b; font-size: 18px;">Please enter your <strong>Google Gemini API Key</strong> in the sidebar to unlock the Digital HQ.</p>
+        <div style="margin-top: 20px; padding: 15px; background: #f1f5f9; border-radius: 8px; display: inline-block; text-align: left;">
+            <strong><i class="fa-solid fa-key"></i> Instructions:</strong>
+            <ul style="margin: 10px 0; padding-left: 20px; color: #475569;">
+                <li>Go to <b>aistudio.google.com</b> to get a free key.</li>
+                <li>Paste it in the sidebar input field.</li>
+                <li>Wait for the green <b>SYSTEM ONLINE</b> indicator.</li>
+            </ul>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
