@@ -127,32 +127,43 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ====== TAB 1: LANDING PAGE FACTORY ======
 with tab1:
     st.header("Landing Page Generator")
+    st.info("Safe Mode: Replaces content without breaking HTML structure.")
+    
     c1, c2 = st.columns(2)
     with c1:
-        project_name = st.text_input("Project Name", placeholder="e.g. TVS Emerald Luxor")
-        location = st.text_input("Location", placeholder="e.g. Anna Nagar")
-        price = st.text_input("Price", placeholder="e.g. 1.5 Cr")
+        st.markdown("### 🎯 New Project Details")
+        project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
+        location = st.text_input("New Location", placeholder="e.g. Anna Nagar")
+        price = st.text_input("New Price", placeholder="e.g. 1.5 Cr")
+        
     with c2:
-        old_name = st.text_input("Template Placeholder", value="Casagrand Flagship")
-        html_code = st.text_area("Paste Master HTML Code", height=200)
+        st.markdown("### 🔍 Find in HTML")
+        old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
+        old_location = st.text_input("Old Location to Replace", value="Porur")
+        old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
+
+    html_code = st.text_area("Paste Live HTML Code Here", height=200)
 
     if st.button("⚡ Build Page"):
         if html_code:
-            # 1. Technical Swap
+            # 1. Technical Swap (Safe Python String Replacement - Won't break divs)
             final_html = html_code.replace(old_name, project_name)
-            final_html = final_html.replace("{PRICE}", price)
-            final_html = final_html.replace("{LOCATION}", location)
+            if old_price: final_html = final_html.replace(old_price, price)
+            if old_location: final_html = final_html.replace(old_location, location)
             
-            # 2. AI SEO Injection
+            # 2. AI SEO Injection (Smart Feature)
             seo_desc = run_ai_task(
                 f"Write a high-ranking SEO meta description (155 chars) for {project_name} in {location}. Focus on Luxury & ROI.",
                 task_desc="Generating SEO Metadata"
             )
             
-            if seo_desc:
+            # Try to inject meta tag if placeholder exists, otherwise just warn
+            if "{DESC}" in final_html and seo_desc:
                 final_html = final_html.replace("{DESC}", seo_desc)
-                st.success("Build Successful!")
-                st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
+                st.toast("SEO Metadata Injected!")
+            
+            st.success("Build Successful! HTML Structure Preserved.")
+            st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
 
 # ====== TAB 2: CONTENT STUDIO ======
 with tab2:
@@ -186,6 +197,12 @@ with tab2:
             """
             result = run_ai_task(prompt, task_desc="Designing Carousel")
             if result: st.markdown(result)
+
+    elif content_mode == "📧 Client Email":
+        query = st.text_area("Client Query", placeholder="Asking about rental yield...")
+        if st.button("Draft Reply"):
+            result = run_ai_task(f"Write a professional reply to: {query}", task_desc="Drafting Email")
+            if result: st.text_area("Draft", result, height=300)
 
 # ====== TAB 3: IMAGE STUDIO (NEW) ======
 with tab3:
