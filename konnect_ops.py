@@ -14,35 +14,92 @@ st.set_page_config(
 # Custom CSS for "Executive Dashboard" Look
 st.markdown("""
     <style>
+        /* Global Font & Colors */
+        html, body, [class*="css"] {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333333;
+        }
+        
+        /* Main Background */
+        .stApp {
+            background-color: #f8f9fa;
+        }
+
+        /* Hide Streamlit Default Branding */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
+        header {visibility: hidden;}
         
         /* Professional Button Styling */
         .stButton>button {
             width: 100%;
             background-color: #002D62; /* Home Konnect Blue */
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             height: 3em;
             font-weight: 600;
             border: none;
             transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .stButton>button:hover {
             background-color: #004080;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
         }
         
         /* Inputs & Text Areas */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-            border-radius: 6px;
-            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 10px;
+            background-color: #ffffff;
+        }
+        .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
+            border-color: #002D62;
+            box-shadow: 0 0 0 0.2rem rgba(0, 45, 98, 0.25);
         }
         
         /* Status Container Styling */
         .stStatusWidget {
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            background-color: #ffffff;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Sidebar Styling */
+        [data-testid="stSidebar"] {
+            background-color: #ffffff;
+            border-right: 1px solid #e9ecef;
+        }
+        [data-testid="stSidebar"] .block-container {
+            padding-top: 2rem;
+        }
+        
+        /* Headings */
+        h1, h2, h3 {
+            color: #002D62;
+            font-weight: 700;
+        }
+        
+        /* Tab Styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 24px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 50px;
+            white-space: pre-wrap;
+            background-color: transparent;
+            border-radius: 4px 4px 0 0;
+            color: #495057;
+            font-weight: 600;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: transparent;
+            color: #002D62;
+            border-bottom: 3px solid #002D62;
         }
     </style>
 """, unsafe_allow_html=True)
