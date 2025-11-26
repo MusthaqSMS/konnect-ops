@@ -1,43 +1,56 @@
 import streamlit as st
 import google.generativeai as genai
-import datetime
 import pandas as pd
+import time
 
-# --- 1. CONFIGURATION & STYLING ---
+# --- 1. PROFESSIONAL CONFIGURATION ---
 st.set_page_config(
-    page_title="Home Konnect HQ",
+    page_title="KonnectOps | Enterprise Edition",
     page_icon="🏢",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Professional Look
+# Custom CSS for "Executive Dashboard" Look
 st.markdown("""
     <style>
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
-        header {visibility: hidden;}
         
+        /* Professional Button Styling */
         .stButton>button {
             width: 100%;
-            background-color: #002D62;
+            background-color: #002D62; /* Home Konnect Blue */
             color: white;
-            border-radius: 8px;
+            border-radius: 6px;
             height: 3em;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
+            transition: all 0.3s ease;
         }
         .stButton>button:hover {
             background-color: #004080;
-            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Inputs & Text Areas */
+        .stTextInput>div>div>input, .stTextArea>div>div>textarea {
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+        }
+        
+        /* Status Container Styling */
+        .stStatusWidget {
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
         }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. SIDEBAR ---
+# --- 2. SIDEBAR: SYSTEM STATUS ---
 with st.sidebar:
-    st.markdown("## 🏢 KonnectOps")
-    st.caption("Digital Operations Center")
+    st.markdown("### 🏢 KonnectOps")
+    st.caption("Digital Operations Center v6.0")
     
     api_key = st.text_input("🔑 Google API Key", type="password")
     valid_model_name = None
@@ -45,156 +58,179 @@ with st.sidebar:
     if api_key:
         try:
             genai.configure(api_key=api_key)
-            # Smart Auto-Detect Logic
+            # Robust Auto-Discovery
             all_models = list(genai.list_models())
             text_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
             
             if text_models:
+                # Priority Selection: Flash -> Pro -> First Available
                 valid_model_name = text_models[0]
                 for m in text_models:
                     if 'flash' in m and 'legacy' not in m:
                         valid_model_name = m
                         break
-                st.success(f"🟢 Connected! ({valid_model_name})")
+                st.success(f"🟢 System Online\nModel: `{valid_model_name}`")
             else:
-                st.error("🔴 No text models found.")
+                st.error("🔴 No text models found on this key.")
         except Exception as e:
-            st.error(f"🔴 Error: {e}")
+            st.error(f"🔴 Connection Failed")
     
     st.markdown("---")
-    st.info("v5.0 | 2026 Ready")
+    st.markdown("**Active Persona:**\n👨‍💼 Sr. Digital Marketing Exec")
 
-# --- 3. AI LOGIC ---
-def ask_gemini(prompt):
+# --- 3. AI CORE FUNCTIONS (Robust Error Handling) ---
+def run_ai_task(prompt, task_desc="Processing"):
+    """
+    Executes an AI task with a professional progress status.
+    """
     if not api_key or not valid_model_name:
-        return "⚠️ API Key missing or invalid."
-    try:
-        model = genai.GenerativeModel(valid_model_name)
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        return f"Error: {e}"
+        st.error("⚠️ System Offline: Please verify API Key.")
+        return None
 
-# --- 4. MAIN DASHBOARD ---
+    # Professional "Working" Indicator
+    with st.status(f"🤖 {task_desc}...", expanded=True) as status:
+        try:
+            st.write("🔄 Connecting to Neural Network...")
+            model = genai.GenerativeModel(valid_model_name)
+            
+            st.write("🧠 Analyzing Context & Trends...")
+            # Enforce the Persona in every call
+            persona_prompt = f"""
+            ROLE: Act as a Senior Digital Marketing Executive and Full Stack Developer for 'Home Konnect' (Chennai Real Estate).
+            TONE: Professional, Authoritative, Persuasive, and SEO-Optimized.
+            TASK: {prompt}
+            """
+            response = model.generate_content(persona_prompt)
+            
+            st.write("✨ Polishing Output...")
+            time.sleep(0.5) # UX pause for readability
+            
+            status.update(label="✅ Task Complete", state="complete", expanded=False)
+            return response.text
+            
+        except Exception as e:
+            status.update(label="❌ Task Failed", state="error")
+            st.error(f"Error details: {e}")
+            return None
+
+# --- 4. MAIN APPLICATION ---
 st.title("🚀 Home Konnect Digital HQ")
 
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📄 Landing Page Factory", 
-    "✍️ Content Studio", 
-    "📅 Festival Calendar 2026",
+    "✍️ Blog & Content", 
+    "🎨 Image Studio", 
+    "📅 Festival Calendar",
     "👨‍💻 Zoho Helper"
 ])
 
-# ====== MODULE 1: LANDING PAGES ======
+# ====== TAB 1: LANDING PAGE FACTORY ======
 with tab1:
     st.header("Landing Page Generator")
     c1, c2 = st.columns(2)
     with c1:
-        project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
-        location = st.text_input("Location", placeholder="e.g. Porur")
-        price = st.text_input("Price", placeholder="e.g. 85 Lakhs")
+        project_name = st.text_input("Project Name", placeholder="e.g. TVS Emerald Luxor")
+        location = st.text_input("Location", placeholder="e.g. Anna Nagar")
+        price = st.text_input("Price", placeholder="e.g. 1.5 Cr")
     with c2:
-        old_name = st.text_input("Placeholder to Replace", value="Casagrand Flagship")
+        old_name = st.text_input("Template Placeholder", value="Casagrand Flagship")
         html_code = st.text_area("Paste Master HTML Code", height=200)
 
-    if st.button("Generate Page Code"):
+    if st.button("⚡ Build Page"):
         if html_code:
+            # 1. Technical Swap
             final_html = html_code.replace(old_name, project_name)
             final_html = final_html.replace("{PRICE}", price)
             final_html = final_html.replace("{LOCATION}", location)
             
-            if api_key and valid_model_name:
-                seo = ask_gemini(f"Write a 150-char SEO description for {project_name} in {location}.")
-                final_html = final_html.replace("{DESC}", seo)
-                st.toast("SEO Added!")
+            # 2. AI SEO Injection
+            seo_desc = run_ai_task(
+                f"Write a high-ranking SEO meta description (155 chars) for {project_name} in {location}. Focus on Luxury & ROI.",
+                task_desc="Generating SEO Metadata"
+            )
             
-            st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
+            if seo_desc:
+                final_html = final_html.replace("{DESC}", seo_desc)
+                st.success("Build Successful!")
+                st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
 
-# ====== MODULE 2: CONTENT STUDIO (Updated) ======
+# ====== TAB 2: CONTENT STUDIO ======
 with tab2:
     st.header("Content Studio")
+    content_mode = st.radio("Select Output:", ["📝 SEO Blog Post", "📱 Social Media Carousel", "📧 Client Email"], horizontal=True)
     
-    mode = st.radio("Select Mode:", ["📝 Blog Post (From Title)", "📱 Social Media Post", "📧 Client Email"], horizontal=True)
-    
-    if mode == "📝 Blog Post (From Title)":
-        blog_title = st.text_input("Enter Blog Title", placeholder="e.g. Why OMR is the best investment for NRIs in 2026")
-        if st.button("Write Full Blog Post"):
-            if api_key:
-                with st.spinner("Writing article..."):
-                    prompt = f"""
-                    Act as a Senior Real Estate Content Writer for Home Konnect.
-                    Write a full blog post based on this title: "{blog_title}".
-                    
-                    Structure:
-                    1. Catchy Introduction
-                    2. 3-4 Key Points with Data/Trends
-                    3. Conclusion with Call to Action (Contact Home Konnect).
-                    
-                    Tone: Professional, Authoritative, SEO-friendly.
-                    """
-                    result = ask_gemini(prompt)
-                    st.markdown(result)
-                    st.download_button("Download Blog", result, "blog_post.txt")
-            else:
-                st.error("Please enter API Key.")
+    if content_mode == "📝 SEO Blog Post":
+        title = st.text_input("Blog Title", placeholder="e.g. Top 5 Investment Hotspots in Chennai 2026")
+        if st.button("Draft Article"):
+            prompt = f"""
+            Write a comprehensive blog post for title: '{title}'.
+            Structure:
+            1. H1 Title
+            2. Catchy Introduction (Hook)
+            3. 3-4 Body Paragraphs with H2 Headers
+            4. Conclusion + CTA (Call Home Konnect)
+            5. Suggest a 'Prompt' for an Image Generator for the Cover Image.
+            """
+            result = run_ai_task(prompt, task_desc="Drafting Blog Post")
+            if result: st.markdown(result)
 
-    elif mode == "📱 Social Media Post":
-        topic = st.text_input("Topic", placeholder="e.g. New Launch in Anna Nagar")
-        platform = st.selectbox("Platform", ["Instagram Carousel", "LinkedIn Article", "Facebook Post"])
-        if st.button("Draft Social Post"):
-            if api_key:
-                result = ask_gemini(f"Write a {platform} about {topic}. Include emojis and hashtags.")
-                st.text_area("Draft:", value=result, height=300)
+    elif content_mode == "📱 Social Media Carousel":
+        topic = st.text_input("Topic", placeholder="e.g. Why buy in OMR?")
+        if st.button("Design Carousel"):
+            prompt = f"""
+            Create a 5-Slide Instagram Carousel Script for: '{topic}'.
+            Format:
+            Slide 1: Hook + Image Idea
+            Slide 2-4: Value Points
+            Slide 5: CTA + Hashtags
+            """
+            result = run_ai_task(prompt, task_desc="Designing Carousel")
+            if result: st.markdown(result)
 
-    elif mode == "📧 Client Email":
-        query = st.text_area("Client Query", placeholder="Client asking about property management fees...")
-        if st.button("Draft Reply"):
-            if api_key:
-                result = ask_gemini(f"Write a polite professional email reply to: {query}")
-                st.text_area("Draft:", value=result, height=300)
-
-# ====== MODULE 3: FESTIVAL CALENDAR (New) ======
+# ====== TAB 3: IMAGE STUDIO (NEW) ======
 with tab3:
-    st.header("📅 Upcoming Indian Festivals (2026)")
-    st.caption("Plan your marketing campaigns ahead of time.")
+    st.header("🎨 AI Image Studio")
+    st.info("Generate prompts for Cover Images & Section Visuals.")
     
-    # Static Data for 2026 (Major Festivals)
-    data = {
-        "Date": [
-            "Jan 14, 2026", "Jan 26, 2026", "Mar 04, 2026", 
-            "Mar 20, 2026", "Apr 14, 2026", "Aug 15, 2026", 
-            "Aug 26, 2026", "Sep 14, 2026", "Oct 20, 2026", 
-            "Nov 08, 2026", "Dec 25, 2026"
-        ],
-        "Festival": [
-            "Pongal / Makar Sankranti", "Republic Day", "Holi", 
-            "Ramzan (Eid-ul-Fitr) *", "Tamil New Year", "Independence Day", 
-            "Onam", "Ganesh Chaturthi", "Ayudha Puja / Dussehra", 
-            "Diwali (Deepavali)", "Christmas"
-        ],
-        "Day": [
-            "Wednesday", "Monday", "Wednesday", 
-            "Friday", "Tuesday", "Saturday", 
-            "Wednesday", "Monday", "Tuesday", 
-            "Sunday", "Friday"
-        ]
-    }
+    img_topic = st.text_input("Describe the Image you need", placeholder="e.g. Luxury apartment living room with sea view in Chennai")
+    style = st.selectbox("Art Style", ["Photorealistic", "Minimalist Illustration", "Cinematic Render", "Digital Art"])
     
-    df = pd.DataFrame(data)
-    st.table(df)
-    st.caption("* Dates for Islamic festivals are subject to moon sighting.")
-    
-    st.markdown("### 💡 Need a Campaign Idea?")
-    selected_fest = st.selectbox("Select Festival", df["Festival"])
-    if st.button("Generate Campaign Idea"):
-        if api_key:
-            idea = ask_gemini(f"Suggest a creative real estate marketing campaign for '{selected_fest}' targeting Home Buyers in Chennai.")
-            st.write(idea)
+    if st.button("✨ Generate Image Prompt"):
+        prompt = f"""
+        Write a highly detailed Text-to-Image Prompt for Midjourney/DALL-E based on: '{img_topic}'.
+        Style: {style}.
+        Include details on lighting, camera angle, and color palette.
+        """
+        result = run_ai_task(prompt, task_desc="Engineering Image Prompt")
+        if result:
+            st.success("Copy this prompt into Midjourney/Canva/Bing Image Creator:")
+            st.code(result, language="text")
+            st.caption("Note: Direct image generation requires a paid Vertex AI account. This prompt engineer ensures you get the best result on any platform.")
 
-# ====== MODULE 4: ZOHO HELPER ======
+# ====== TAB 4: FESTIVAL CALENDAR ======
 with tab4:
-    st.header("Zoho Automation Assistant")
-    task = st.text_area("Describe automation task", placeholder="e.g. Send email when lead status is 'Hot'")
-    if st.button("Generate Script"):
-        if api_key:
-            st.code(ask_gemini(f"Write Zoho Deluge script for: {task}"), language='java')
+    st.header("📅 2026 Marketing Calendar")
+    
+    # Static Data
+    data = {
+        "Date": ["Jan 14", "Jan 26", "Mar 04", "Mar 20", "Apr 14", "Aug 15", "Aug 26", "Sep 14", "Oct 20", "Nov 08", "Dec 25"],
+        "Festival": ["Pongal", "Republic Day", "Holi", "Ramzan *", "Tamil New Year", "Independence Day", "Onam", "Ganesh Chaturthi", "Ayudha Puja", "Diwali", "Christmas"],
+        "Day": ["Wed", "Mon", "Wed", "Fri", "Tue", "Sat", "Wed", "Mon", "Tue", "Sun", "Fri"]
+    }
+    st.table(pd.DataFrame(data))
+    
+    target_fest = st.selectbox("Pick a Festival for Campaign", data["Festival"])
+    if st.button("Plan Campaign"):
+        prompt = f"Create a 3-step Digital Marketing Campaign for '{target_fest}' targeting NRIs for Home Konnect."
+        result = run_ai_task(prompt, task_desc="Planning Campaign")
+        if result: st.markdown(result)
+
+# ====== TAB 5: ZOHO HELPER ======
+with tab5:
+    st.header("Zoho Deluge Architect")
+    task = st.text_area("Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
+    
+    if st.button("Code Script"):
+        prompt = f"Write a production-ready Zoho Deluge script for: {task}. Include error handling and comments."
+        result = run_ai_task(prompt, task_desc="Compiling Code")
+        if result: st.code(result, language='java')
