@@ -127,7 +127,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ====== TAB 1: LANDING PAGE FACTORY ======
 with tab1:
     st.header("Landing Page Generator")
-    st.info("Safe Mode: Replaces content without breaking HTML structure.")
+    st.info("Safe Mode: Replaces content while preserving exact HTML structure.")
     
     c1, c2 = st.columns(2)
     with c1:
@@ -141,6 +141,7 @@ with tab1:
         old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
         old_location = st.text_input("Old Location to Replace", value="Porur")
         old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
+        old_about = st.text_area("Old Description (Optional)", height=68, help="Paste a paragraph from the old HTML. The AI will rewrite it for the new project.")
 
     html_code = st.text_area("Paste Live HTML Code Here", height=200)
 
@@ -151,13 +152,23 @@ with tab1:
             if old_price: final_html = final_html.replace(old_price, price)
             if old_location: final_html = final_html.replace(old_location, location)
             
-            # 2. AI SEO Injection (Smart Feature)
+            # 2. Content Alignment (Smart Description Swap)
+            if old_about:
+                new_about = run_ai_task(
+                    f"Write a compelling 3-sentence real estate project description for '{project_name}' located in '{location}'. Price starts at {price}. Tone: Luxury & Investment. Output: Plain text only (no markdown).",
+                    task_desc="Aligning Description Content"
+                )
+                if new_about:
+                    final_html = final_html.replace(old_about, new_about)
+                    st.toast("Project Description Updated!")
+
+            # 3. AI SEO Injection
             seo_desc = run_ai_task(
                 f"Write a high-ranking SEO meta description (155 chars) for {project_name} in {location}. Focus on Luxury & ROI.",
                 task_desc="Generating SEO Metadata"
             )
             
-            # Try to inject meta tag if placeholder exists, otherwise just warn
+            # Try to inject meta tag if placeholder exists
             if "{DESC}" in final_html and seo_desc:
                 final_html = final_html.replace("{DESC}", seo_desc)
                 st.toast("SEO Metadata Injected!")
