@@ -163,7 +163,7 @@ if not st.session_state.model_name:
 
 # === VIEW 2: DASHBOARD ===
 else:
-    st.markdown(f"### <i class='fa-solid fa-rocket' style='color:#002D62'></i> Digital HQ", unsafe_allow_html=True)
+    st.markdown(f"### Homekonnect Digital HQ", unsafe_allow_html=True)
     st.caption(f"🟢 Online: {st.session_state.model_name.split('/')[-1]}")
 
     # TABS
@@ -198,11 +198,11 @@ else:
     # --- TAB 2: CONTENT ---
     with tab2:
         st.markdown("#### <i class='fa-solid fa-pen-nib'></i> Marketing Studio", unsafe_allow_html=True)
-        ctype = st.selectbox("Content Type", ["Instagram Carousel", "LinkedIn Post", "Client Email"])
+        ctype = st.selectbox("Content Type", ["Blog Post", "Instagram Carousel", "LinkedIn Post", "Client Email"])
         topic = st.text_input("Topic", placeholder="Why invest in OMR?")
         if st.button("✨ Draft Content"):
             with st.spinner("Writing..."):
-                st.write(ask_ai(f"Act as Marketing Manager. Write a {ctype} about {topic}."))
+                st.write(ask_ai(f"Act as a Senior Marketing Manager. Write a professional {ctype} about: {topic}."))
 
     # --- TAB 3: IMAGES ---
     with tab3:
