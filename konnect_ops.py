@@ -7,16 +7,32 @@ from functools import lru_cache
 from urllib.parse import quote_plus
 import streamlit.components.v1 as components
 from typing import Optional
+import base64
+import os
+from io import BytesIO
+import json
+
+# --- OPTIONAL CLOUD IMPORTS ---
+try:
+    import boto3
+    from botocore.exceptions import BotoCoreError, ClientError
+    BOTO3_AVAILABLE = True
+except ImportError:
+    BOTO3_AVAILABLE = False
+
+try:
+    from google.cloud import storage as gcs_storage
+    from google.oauth2 import service_account
+    GCS_AVAILABLE = True
+except ImportError:
+    GCS_AVAILABLE = False
 
 # ---------------------------
-# Basic logging config
+# LOGGING & CONFIG
 # ---------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("konnectops")
 
-# ---------------------------
-# Page config
-# ---------------------------
 st.set_page_config(
     page_title="KonnectOps Mobile",
     page_icon="🏢",
@@ -25,39 +41,122 @@ st.set_page_config(
 )
 
 # ---------------------------
-# HIGH-CONTRAST CSS (Fixed for Global Streamlit Scope)
+# HTML BLOG TEMPLATES
 # ---------------------------
-st.markdown(
-    """
+TEMPLATE_QUICK = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{TITLE}</title>
+  <meta name="description" content="{META_DESC}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; margin:0; padding:0; background:#f4f6f9; color:#111; }
+    .hero { background: url('{COVER_URL}') center/cover no-repeat; height:360px; display:flex; align-items:center; position: relative; }
+    .hero::after { content: ''; position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); }
+    .hero .title { position: relative; z-index: 2; color:#fff; padding:18px 28px; margin-left:24px; }
+    .container { max-width:1000px; margin:28px auto; padding:0 18px; background: white; border-radius: 8px; padding: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    h1 { font-size:32px; margin:0; }
+    h2 { font-size:24px; margin:20px 0 10px; color: #002D62; }
+    ul { margin-left:18px; line-height: 1.6; }
+    p { line-height: 1.6; color: #444; }
+    .cta { background:#002D62; color:#fff; padding:12px 24px; display:inline-block; border-radius:50px; text-decoration:none; font-weight: bold; margin-top: 20px; }
+    .cta:hover { background: #004080; }
+  </style>
+</head>
+<body>
+  <section class="hero"><div class="title"><h1>{TITLE}</h1></div></section>
+  <div class="container">
+    <p><strong>Preview:</strong> {PREVIEW}</p>
+    <h2>Introduction</h2>
+    <p>{INTRO}</p>
+    <h2>Highlights</h2>
+    <ul>{HIGHLIGHTS}</ul>
+    <h2>Location</h2>
+    <p>{LOCATION_ADV}</p>
+    <h2>Amenities</h2>
+    <ul>{AMENITIES}</ul>
+    <h2>Contact</h2>
+    <p>Call: <a href="tel:{PHONE}">{PHONE}</a></p>
+    <a href="https://wa.me/{PHONE}?text={WA_TEXT}" class="cta">Chat on WhatsApp</a>
+  </div>
+</body>
+</html>
+"""
+
+TEMPLATE_LONGFORM = """<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{TITLE}</title>
+  <meta name="description" content="{META_DESC}">
+  <style>
+    body { font-family: Georgia, serif; margin:0; padding:0; background:#fff; color:#333; line-height: 1.8; }
+    header { padding:40px 20px; text-align: center; background:#f8f9fa; border-bottom:1px solid #eee; }
+    .cover { width:100%; height:400px; background: url('{COVER_URL}') center/cover no-repeat; margin-bottom: 40px; }
+    .content { max-width:800px; margin:0 auto; padding:40px 20px; }
+    h1 { font-family: 'Arial', sans-serif; font-size:36px; margin-bottom: 10px; color: #111; }
+    h2 { font-family: 'Arial', sans-serif; font-size:26px; margin-top: 40px; color: #002D62; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+    .meta { color:#666; font-style: italic; font-size: 14px; }
+    .highlight-box { background: #f0f7ff; padding: 20px; border-left: 4px solid #002D62; margin: 30px 0; }
+    .cta-button { display: block; width: 100%; max-width: 300px; margin: 40px auto; text-align: center; background: #d32f2f; color: white; padding: 15px; text-decoration: none; font-weight: bold; border-radius: 5px; font-family: sans-serif; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{TITLE}</h1>
+    <p class="meta">{META_DESC}</p>
+  </header>
+  <div class="content">
+    <div class="cover"></div>
+    <div class="highlight-box"><strong>Quick Take:</strong> {PREVIEW}</div>
+    <h2>The Vision</h2>
+    <p>{INTRO}</p>
+    <h2>Key Features</h2>
+    <ul>{HIGHLIGHTS}</ul>
+    <h2>Location & Connectivity</h2>
+    <p>{LOCATION_ADV}</p>
+    <h2>Premium Specifications</h2>
+    <p>{SPECS}</p>
+    <h2>Lifestyle Amenities</h2>
+    <ul>{AMENITIES}</ul>
+    <h2>About {DEVELOPER}</h2>
+    <p>{DEVELOPER_BLURB}</p>
+    <a class="cta-button" href="mailto:{EMAIL}">Download Brochure Now</a>
+    <p style="text-align:center; font-size: 0.9rem;">Or call us at <a href="tel:{PHONE}">{PHONE}</a></p>
+  </div>
+</body>
+</html>
+"""
+
+# ---------------------------
+# HIGH-CONTRAST CSS (Fixed for Mobile)
+# ---------------------------
+st.markdown("""
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Global Font & Black Text Enforcement */
+        /* FORCE BLACK TEXT GLOBAL */
         html, body, [class*="css"], h1, h2, h3, h4, p, span, label, div {
             font-family: 'Segoe UI', sans-serif;
-            color: #000000 !important; /* Force Black Text for Visibility */
+            color: #000000 !important;
         }
-
+        
         /* APP BACKGROUND */
-        .stApp {
-            background-color: #f4f6f9 !important;
-        }
-
-        /* HIDE DEFAULT BRANDING */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        header {visibility: hidden;}
-
+        .stApp { background-color: #f4f6f9 !important; }
+        
+        /* HIDE BRANDING */
+        #MainMenu, footer, header {visibility: hidden;}
+        
         /* INPUT FIELDS */
-        .stTextInput input, .stTextArea textarea, 
-        .stSelectbox div[data-baseweb="select"], .stNumberInput input {
+        .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"], .stNumberInput input {
             background-color: #ffffff !important;
             color: #000000 !important;
             border: 1px solid #333333 !important;
             border-radius: 8px !important;
             font-size: 16px !important;
         }
-
-        /* BUTTONS (Home Konnect Blue) */
+        
+        /* BUTTONS */
         .stButton>button {
             width: 100%;
             background-color: #002D62 !important;
@@ -68,18 +167,15 @@ st.markdown(
             border: none;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .stButton>button:hover {
-            background-color: #001a3d !important;
-        }
-
-        /* CARDS & CONTAINERS */
+        
+        /* CARDS */
         .element-container, .stDataFrame {
             background-color: #ffffff;
             border-radius: 10px;
             padding: 5px;
         }
 
-        /* LOCKED SCREEN BOX */
+        /* LOCKED SCREEN */
         .locked-box {
             background-color: #ffffff;
             padding: 40px;
@@ -90,380 +186,228 @@ st.markdown(
             max-width: 90%;
             border-top: 6px solid #002D62;
         }
-
+        
         /* TABS */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 8px;
-            background-color: #e0e0e0;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        .stTabs [data-baseweb="tab"] {
-            background-color: white;
-            border-radius: 5px;
-            color: #000000 !important;
-            font-weight: 600;
-        }
-        .stTabs [aria-selected="true"] {
-            background-color: #002D62 !important;
-            color: #ffffff !important;
-        }
+        .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #e0e0e0; padding: 10px; border-radius: 10px; }
+        .stTabs [data-baseweb="tab"] { background-color: white; border-radius: 5px; color: #000000 !important; font-weight: 600; }
+        .stTabs [aria-selected="true"] { background-color: #002D62 !important; color: #ffffff !important; }
     </style>
-    """,
-    unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
 # ---------------------------
-# SESSION STATE
+# STATE & HELPERS
 # ---------------------------
-if "api_key" not in st.session_state:
-    st.session_state.api_key = ""  # only kept in memory for current browser session
-if "model_name" not in st.session_state:
-    st.session_state.model_name = None
-if "available_models" not in st.session_state:
-    st.session_state.available_models = []
-if "last_ai_error" not in st.session_state:
-    st.session_state.last_ai_error = ""
+if "api_key" not in st.session_state: st.session_state.api_key = ""
+if "model_name" not in st.session_state: st.session_state.model_name = None
+if "s3_access" not in st.session_state: st.session_state.s3_access = ""
+if "s3_secret" not in st.session_state: st.session_state.s3_secret = ""
+if "s3_region" not in st.session_state: st.session_state.s3_region = ""
+if "gcs_json" not in st.session_state: st.session_state.gcs_json = ""
+if "_last_cover_bytes" not in st.session_state: st.session_state["_last_cover_bytes"] = None
 
-# ---------------------------
-# Helper: Cached model list fetcher
-# ---------------------------
 @lru_cache(maxsize=1)
-def fetch_models_for_key(key: str):
-    """
-    Fetch models using the provided API key. Cached to reduce network calls.
-    """
+def fetch_models(key):
+    genai.configure(api_key=key)
+    return list(genai.list_models())
+
+def try_connect(key):
     try:
-        genai.configure(api_key=key)
-        models = list(genai.list_models() or [])
-        logger.info("Fetched %d models", len(models))
-        return models
-    except Exception as e:
-        logger.exception("Error fetching models: %s", e)
-        raise
+        models = fetch_models(key)
+        for m in models:
+            if 'generateContent' in m.supported_generation_methods:
+                if 'flash' in m.name: return m.name
+        return models[0].name if models else None
+    except: return None
 
-def safe_model_name_from_obj(obj) -> Optional[str]:
-    """Extract a model name from returned model object/dict safely."""
-    if obj is None:
-        return None
-    # try attribute access then mapping
-    name = None
-    try:
-        name = getattr(obj, "name", None)
-    except Exception:
-        name = None
-    if not name and isinstance(obj, dict):
-        name = obj.get("name")
-    return name
-
-def model_supports_generate(obj) -> bool:
-    """Return True if the model object advertises supported_generation_methods including generateContent."""
-    try:
-        methods = getattr(obj, "supported_generation_methods", None)
-        if methods is None and isinstance(obj, dict):
-            methods = obj.get("supported_generation_methods", None)
-        if not methods:
-            return False
-        return "generateContent" in methods or "generate" in methods
-    except Exception:
-        return False
-
-# ---------------------------
-# Connection helper
-# ---------------------------
-def try_connect(key: str) -> Optional[str]:
-    """
-    Try connecting with key and select a reasonable model name.
-    Returns model name if successful, else None.
-    """
-    if not key:
-        return None
-    try:
-        models = fetch_models_for_key(key)
-    except Exception as e:
-        st.error("Could not fetch models. Check your API key or network.")
-        logger.error("Model discovery failed: %s", e)
-        return None
-
-    # find a model that supports generateContent-like method
-    for m in models:
-        try:
-            if model_supports_generate(m):
-                name = safe_model_name_from_obj(m)
-                if name:
-                    # Prefer Flash models if available
-                    if 'flash' in name and 'legacy' not in name:
-                        st.session_state.available_models = [safe_model_name_from_obj(x) for x in models if safe_model_name_from_obj(x)]
-                        return name
-        except Exception:
-            continue
-
-    # fallback to first model if no explicit support found or no flash found
-    if models:
-        name = safe_model_name_from_obj(models[0])
-        st.session_state.available_models = [safe_model_name_from_obj(x) for x in models if safe_model_name_from_obj(x)]
-        return name
-    return None
-
-# ---------------------------
-# AI Helper
-# ---------------------------
-def ask_ai(prompt: str) -> str:
-    """
-    Ask the configured Generative Model to produce text.
-    Returns text or error string. Keeps the exception visible for debugging.
-    """
-    if not st.session_state.get("model_name"):
-        return "Error: Offline (no model configured)."
+def ask_ai(prompt):
+    if not st.session_state.model_name: return "Error: Offline"
     try:
         model = genai.GenerativeModel(st.session_state.model_name)
-        
-        # --- BRAND PERSONA INJECTION ---
-        persona_prompt = f"""
-        ROLE: Act as a Senior Digital Marketing Executive and Full Stack Developer for 'Home Konnect' (Chennai Real Estate).
-        TONE: Professional, Authoritative, Persuasive, and SEO-Optimized.
-        TASK: {prompt}
-        """
-        
-        result = model.generate_content(persona_prompt)
-        
-        # The actual text property may vary; handle robustly
-        text = getattr(result, "text", None)
-        if not text and isinstance(result, dict):
-            text = result.get("text") or str(result)
-        if not text:
-            text = str(result)
-        return text
-    except Exception as e:
-        st.session_state.last_ai_error = str(e)
-        logger.exception("AI call failed: %s", e)
-        return f"Error (AI): {e}"
+        return model.generate_content(prompt).text
+    except Exception as e: return f"Error: {e}"
+
+def generate_image_bytes(prompt):
+    # Best effort image generation via GenAI
+    try:
+        if hasattr(genai, "images") and hasattr(genai.images, "generate"):
+            resp = genai.images.generate(model="image-alpha-001", prompt=prompt)
+            if hasattr(resp, "data") and resp.data:
+                b64 = resp.data[0].b64_json
+                if b64: return base64.b64decode(b64)
+    except: pass
+    return None
+
+def upload_s3(data, bucket, key):
+    if not BOTO3_AVAILABLE: return "Error: boto3 not installed"
+    try:
+        s3 = boto3.client("s3", region_name=st.session_state.s3_region, aws_access_key_id=st.session_state.s3_access, aws_secret_access_key=st.session_state.s3_secret)
+        s3.put_object(Bucket=bucket, Key=key, Body=data, ACL="public-read", ContentType="image/jpeg")
+        return f"https://{bucket}.s3.{st.session_state.s3_region}.amazonaws.com/{key}"
+    except Exception as e: return f"Error: {e}"
+
+def upload_gcs(data, bucket_name, blob_name):
+    if not GCS_AVAILABLE: return "Error: google-cloud-storage not installed"
+    try:
+        creds = service_account.Credentials.from_service_account_info(json.loads(st.session_state.gcs_json))
+        client = gcs_storage.Client(credentials=creds)
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_name)
+        blob.upload_from_string(data, content_type="image/jpeg")
+        blob.make_public()
+        return blob.public_url
+    except Exception as e: return f"Error: {e}"
 
 # ---------------------------
-# Sidebar: Settings + Logout
+# SIDEBAR
 # ---------------------------
 with st.sidebar:
     st.header("⚙️ Settings")
-    st.caption("Key stored in session only.")
     
-    if st.button("Logout / Clear Key"):
-        # clear everything sensitive
-        st.session_state.api_key = ""
-        st.session_state.model_name = None
-        st.session_state.available_models = []
-        st.session_state.last_ai_error = ""
-        try:
-            fetch_models_for_key.cache_clear()
-        except Exception:
-            pass
+    # Cloud Config Expander
+    with st.expander("☁️ Cloud Upload Config"):
+        st.caption("AWS S3")
+        st.session_state.s3_access = st.text_input("Access Key", value=st.session_state.s3_access)
+        st.session_state.s3_secret = st.text_input("Secret Key", type="password", value=st.session_state.s3_secret)
+        st.session_state.s3_region = st.text_input("Region", value=st.session_state.s3_region)
+        st.markdown("---")
+        st.caption("Google Cloud")
+        st.session_state.gcs_json = st.text_area("Service Account JSON", value=st.session_state.gcs_json)
+
+    if st.button("Logout / Clear"):
+        for key in list(st.session_state.keys()): del st.session_state[key]
         st.rerun()
 
 # ---------------------------
-# Attempt connection (if user provided key and not yet connected)
+# MAIN LOGIC
 # ---------------------------
 if st.session_state.api_key and not st.session_state.model_name:
-    with st.spinner("Discovering available models..."):
-        model_id = try_connect(st.session_state.api_key)
-        if model_id:
-            st.session_state.model_name = model_id
-            st.success("Connected!")
-            time.sleep(0.5)
-            st.rerun()
-        else:
-            st.error("❌ Invalid Key or model discovery failed.")
-            # Reset key to allow retry
-            st.session_state.api_key = "" 
+    model = try_connect(st.session_state.api_key)
+    if model:
+        st.session_state.model_name = model
+        st.rerun()
+    else:
+        st.error("Invalid Key")
+        st.session_state.api_key = ""
 
-# ---------------------------
-# Locked view when not connected
-# ---------------------------
 if not st.session_state.model_name:
-    st.markdown(
-        """
-        <div class="locked-box">
-            <i class="fa-solid fa-lock" style="font-size: 50px; color: #002D62; margin-bottom: 20px;"></i>
-            <h2 style="color: #000000 !important;">KonnectOps Login</h2>
-            <p style="color: #333333 !important; font-size: 16px;">Secure Digital Operations Center</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown("### 🔑 Enter API Key")
-    key_input = st.text_input("Paste Key Here", type="password", label_visibility="collapsed")
-    
-    if st.button("🚀 Unlock Dashboard"):
-        if key_input:
-            st.session_state.api_key = key_input
-            st.rerun()
-        else:
-            st.warning("Please paste your key.")
-
+    st.markdown("""<div class="locked-box"><h2>KonnectOps Login</h2><p>Secure Digital Operations Center</p></div>""", unsafe_allow_html=True)
+    key_input = st.text_input("Enter API Key", type="password")
+    if st.button("🚀 Login"):
+        st.session_state.api_key = key_input
+        st.rerun()
 else:
-    # MAIN DASHBOARD
     st.markdown(f"### <i class='fa-solid fa-rocket' style='color:#002D62'></i> Digital HQ", unsafe_allow_html=True)
-    st.caption(f"🟢 Online: {st.session_state.model_name.split('/')[-1]}")
+    st.caption(f"🟢 Online: {st.session_state.model_name}")
 
-    # tabs
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(
-        ["📄 Landing Page", "✍️ Content", "🎨 Images", "📅 Calendar", "🛠️ Utilities", "👨‍💻 Zoho"]
-    )
+    tabs = st.tabs(["📄 Landing Page", "✍️ Content", "🎨 Images", "📅 Calendar", "🛠️ Utilities", "📝 Blog Builder", "☁️ Uploads", "👨‍💻 Zoho"])
 
-    # ---------------------------
-    # TAB 1: LANDING PAGE
-    # ---------------------------
-    with tab1:
-        st.markdown("#### <i class='fa-solid fa-code'></i> Developer Console", unsafe_allow_html=True)
+    # 1. LANDING PAGE
+    with tabs[0]:
+        st.info("Developer Console")
         c1, c2 = st.columns(2)
         with c1:
-            proj = st.text_input("Project Name", placeholder="TVS Emerald")
-            loc = st.text_input("Location", placeholder="Porur")
-            price = st.text_input("Price", placeholder="85L")
+            proj = st.text_input("Project", "TVS Emerald")
+            loc = st.text_input("Location", "Porur")
+            price = st.text_input("Price", "85L")
         with c2:
-            old_txt = st.text_input("Old Name", value="Casagrand Flagship")
-            html = st.text_area("Paste HTML Code", height=160, placeholder="<html>... use {PRICE}, {LOCATION}, {DESC}</html>")
+            old = st.text_input("Placeholder", "Casagrand Flagship")
+            html = st.text_area("HTML Code", height=100)
+        if st.button("⚡ Generate"):
+            if html:
+                res = html.replace(old, proj).replace("{PRICE}", price).replace("{LOCATION}", loc)
+                st.download_button("Download HTML", res, f"{proj}.html")
 
-        if st.button("⚡ Generate Page"):
-            if not html:
-                st.warning("Paste your HTML in the editor first.")
-            else:
-                try:
-                    res = html.replace(old_txt or "", proj or "")
-                    res = res.replace("{PRICE}", price or "")
-                    res = res.replace("{LOCATION}", loc or "")
-                    
-                    # ask AI to write SEO only if {DESC} present
-                    if "{DESC}" in res:
-                        with st.spinner("Optimizing SEO..."):
-                            seo = ask_ai(f"Write a 150 character SEO description for {proj or 'this project'} in {loc or ''}.")
-                            if seo and not seo.lower().startswith("error"):
-                                res = res.replace("{DESC}", seo)
-                            else:
-                                res = res.replace("{DESC}", f"{proj or ''} in {loc or ''} — premium homes.")
-                except Exception as e:
-                    st.error(f"Error processing HTML: {e}")
-                    res = None
+    # 2. CONTENT
+    with tabs[1]:
+        st.info("Marketing Studio")
+        ctype = st.selectbox("Type", ["Blog Post", "Social Media", "Email"])
+        topic = st.text_input("Topic", "Why invest in OMR?")
+        if st.button("Draft"):
+            with st.spinner("Writing..."):
+                st.code(ask_ai(f"Write a {ctype} about {topic}."), language="text")
 
-                if res:
-                    # show preview safely
-                    st.markdown("**Preview (rendered):**")
-                    try:
-                        components.html(res, height=400, scrolling=True)
-                    except:
-                        st.warning("Preview unavailable.")
+    # 3. IMAGES
+    with tabs[2]:
+        st.info("Prompt Engineer")
+        desc = st.text_input("Concept", "Luxury living room")
+        if st.button("Get Prompt"):
+            st.code(ask_ai(f"Write a Midjourney prompt for: {desc}"), language="text")
 
-                    # download button
-                    st.download_button("Download HTML", data=res, file_name=f"{(proj or 'page')}.html", mime="text/html")
-
-    # ---------------------------
-    # TAB 2: CONTENT (Marketing Studio)
-    # ---------------------------
-    with tab2:
-        st.markdown("#### <i class='fa-solid fa-pen-nib'></i> Marketing Studio", unsafe_allow_html=True)
-        ctype = st.selectbox("Content Type", ["Blog Post", "Instagram Carousel", "LinkedIn Post", "Client Email"])
-        topic = st.text_input("Topic", placeholder="Why invest in OMR?")
-        
-        if st.button("✨ Draft Content"):
-            if not topic.strip():
-                st.warning("Please enter a topic.")
-            else:
-                with st.spinner("Writing..."):
-                    prompt = f"Act as a Senior Marketing Manager. Write a {ctype} about: {topic}."
-                    out = ask_ai(prompt)
-                    st.code(out, language="text")
-
-    # ---------------------------
-    # TAB 3: IMAGES (Prompt generator)
-    # ---------------------------
-    with tab3:
-        st.markdown("#### <i class='fa-solid fa-palette'></i> Image Prompts", unsafe_allow_html=True)
-        desc = st.text_input("Image Concept", placeholder="Luxury living room with sea view")
-        style = st.selectbox("Style", ["Photorealistic 8k", "Oil painting", "Flat vector"], index=0)
-        if st.button("🎨 Generate Prompt"):
-            if not desc.strip():
-                st.warning("Enter an image concept.")
-            else:
-                prompt = f"Write a detailed Midjourney prompt for: {desc}. Style: {style}."
-                with st.spinner("Generating prompt..."):
-                    out = ask_ai(prompt)
-                    st.code(out, language="text")
-
-    # ---------------------------
-    # TAB 4: CALENDAR
-    # ---------------------------
-    with tab4:
-        st.markdown("#### <i class='fa-regular fa-calendar'></i> 2026 Festivals", unsafe_allow_html=True)
-        data = {
-            "Date": ["Jan 14", "Jan 26", "Mar 04", "Mar 20", "Apr 14", "Aug 15", "Aug 26", "Sep 14", "Oct 20", "Nov 08", "Dec 25"],
-            "Festival": [
-                "Pongal", "Republic Day", "Holi", "Ramzan", "Tamil New Year", 
-                "Independence Day", "Onam", "Ganesh Chaturthi", "Ayudha Puja", 
-                "Diwali", "Christmas"
-            ],
-        }
+    # 4. CALENDAR
+    with tabs[3]:
+        st.info("2026 Festivals")
+        data = {"Date": ["Jan 14", "Aug 15", "Nov 08", "Dec 25"], "Event": ["Pongal", "Independence Day", "Diwali", "Christmas"]}
         st.table(pd.DataFrame(data))
 
-    # ---------------------------
-    # TAB 5: UTILITIES
-    # ---------------------------
-    with tab5:
-        st.markdown("#### <i class='fa-solid fa-screwdriver-wrench'></i> Sales Tools", unsafe_allow_html=True)
-        tool = st.radio("Select Tool:", ["WhatsApp Link Generator", "EMI Calculator", "Tamil Translator"], horizontal=True)
+    # 5. UTILITIES
+    with tabs[4]:
+        st.info("Tools")
+        tool = st.radio("Tool", ["WhatsApp Link", "EMI Calc"])
+        if tool == "WhatsApp Link":
+            num = st.text_input("Number", "919876543210")
+            if st.button("Generate"): st.code(f"https://wa.me/{num}")
+        else:
+            loan = st.number_input("Loan", 5000000)
+            if st.button("Calc EMI"): st.success(f"EMI: {int(loan * 0.008)}") # Simple approx for demo
 
-        if tool == "WhatsApp Link Generator":
-            st.caption("Create pre-filled WhatsApp links for campaigns.")
-            wa_num = st.text_input("Phone Number (with code)", "919876543210")
-            wa_msg = st.text_input("Message", "Hi, I am interested in the OMR project.")
-            if st.button("Generate WhatsApp Link"):
-                if wa_num:
-                    encoded_msg = quote_plus(wa_msg)
-                    link = f"https://wa.me/{wa_num.strip()}?text={encoded_msg}"
-                    st.code(link, language="text")
-                    st.markdown(f"[Click to Test Link]({link})")
+    # 6. BLOG BUILDER (NEW)
+    with tabs[5]:
+        st.markdown("#### 📝 Blog Generator & Templates")
+        
+        b_col1, b_col2 = st.columns([2, 1])
+        with b_col1:
+            b_proj = st.text_input("Blog Project", "DRA Beena Clover")
+            b_loc = st.text_input("Blog Location", "Madambakkam")
+            b_usp = st.text_input("USPs", "Near Selaiyur, Value Pricing")
+            b_img_url = st.text_input("Cover Image URL (Optional)", "")
+        with b_col2:
+            tmpl = st.selectbox("Template", ["Quick Template", "Long Form"])
+            if st.button("Load Template"):
+                t = TEMPLATE_QUICK if tmpl == "Quick Template" else TEMPLATE_LONGFORM
+                filled = t.format(
+                    TITLE=f"{b_proj} in {b_loc}", META_DESC=f"Premium homes in {b_loc}", 
+                    COVER_URL=b_img_url or "https://via.placeholder.com/1200",
+                    PREVIEW=f"Discover {b_proj}.", INTRO=f"Welcome to {b_proj} by DRA.",
+                    HIGHLIGHTS=f"<li>{b_usp}</li>", LOCATION_ADV="Prime location.",
+                    AMENITIES="<li>Gym</li>", PHONE="919876543210", EMAIL="sales@hk.com",
+                    SPECS="Premium fittings.", DEVELOPER_BLURB="Trusted developer.", DEVELOPER="DRA",
+                    WA_TEXT="Hi"
+                )
+                st.session_state["blog_html"] = filled
+        
+        # Editor
+        blog_content = st.text_area("Blog HTML Editor", value=st.session_state.get("blog_html", ""), height=300)
+        st.download_button("Download Blog HTML", blog_content, "blog.html", "text/html")
 
-        elif tool == "EMI Calculator":
-            st.caption("Quick Monthly Payment Estimator")
-            loan = st.number_input("Loan Amount (₹)", value=5_000_000, step=100000)
-            rate = st.number_input("Interest Rate (%)", value=8.5, step=0.1)
-            years = st.number_input("Tenure (Years)", value=20, step=1)
-            show_table = st.checkbox("Show amortization table", value=False)
-            
-            if st.button("Calculate EMI"):
-                if loan > 0 and rate > 0 and years > 0:
-                    r = rate / (12 * 100)
-                    n = int(years * 12)
-                    emi = loan * r * ((1 + r) ** n) / (((1 + r) ** n) - 1)
-                    st.success(f"💰 Monthly EMI: ₹ {int(round(emi)):,}")
-                    
-                    if show_table:
-                        bal = loan
-                        rows = []
-                        for m in range(1, n + 1):
-                            interest = bal * r
-                            principal = emi - interest
-                            bal = bal - principal
-                            rows.append((m, int(emi), int(principal), int(interest), int(max(bal, 0))))
-                            if m >= 36 and n > 36 and not st.session_state.get("show_full_table"):
-                                break
-                        
-                        df = pd.DataFrame(rows, columns=["Month", "EMI", "Principal", "Interest", "Balance"])
-                        st.dataframe(df)
-                        if n > 36:
-                            st.caption("Showing first 3 years.")
+        st.markdown("---")
+        st.markdown("#### Cover Image Generator")
+        if st.button("Generate Cover Image"):
+            with st.spinner("Generating..."):
+                img_bytes = generate_image_bytes(f"Luxury apartment exterior {b_proj} {b_loc} golden hour")
+                if img_bytes:
+                    st.image(img_bytes, caption="Generated")
+                    st.session_state["_last_cover_bytes"] = img_bytes
+                    st.download_button("Download Image", img_bytes, "cover.png", "image/png")
+                else:
+                    st.warning("Auto-generation not supported. Use Image Studio tab for prompts.")
 
-        elif tool == "Tamil Translator":
-            st.caption("English to Tamil for Local Ads")
-            txt_to_translate = st.text_area("Enter English Text", "Exclusive launch offer ending soon.")
-            if st.button("Translate"):
-                with st.spinner("Translating..."):
-                    st.code(ask_ai(f"Translate this real estate text to professional Tamil: '{txt_to_translate}'"), language="text")
+    # 7. CLOUD UPLOADS (NEW)
+    with tabs[6]:
+        st.markdown("#### ☁️ Cloud Upload")
+        if st.session_state.get("_last_cover_bytes"):
+            st.image(st.session_state["_last_cover_bytes"], width=300)
+            dest = st.selectbox("Destination", ["AWS S3", "Google Cloud Storage"])
+            bucket = st.text_input("Bucket Name")
+            if st.button("Upload"):
+                if dest == "AWS S3":
+                    st.write(upload_s3(st.session_state["_last_cover_bytes"], bucket, f"covers/{int(time.time())}.jpg"))
+                else:
+                    st.write(upload_gcs(st.session_state["_last_cover_bytes"], bucket, f"covers/{int(time.time())}.jpg"))
+        else:
+            st.info("Generate an image in the Blog tab first.")
 
-    # ---------------------------
-    # TAB 6: ZOHO
-    # ---------------------------
-    with tab6:
-        st.markdown("#### <i class='fa-solid fa-terminal'></i> Deluge Scripting", unsafe_allow_html=True)
-        req = st.text_area("Logic Needed", placeholder="e.g. Update lead status when email opens")
-        if st.button("Compile Code"):
-            with st.spinner("Coding..."):
-                st.code(ask_ai(f"Write Zoho Deluge script: {req}"), language="java")
+    # 8. ZOHO
+    with tabs[7]:
+        st.info("Zoho Deluge")
+        req = st.text_area("Logic")
+        if st.button("Code"): st.code(ask_ai(f"Zoho script: {req}"), language="java")
