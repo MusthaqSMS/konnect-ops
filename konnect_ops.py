@@ -1,82 +1,74 @@
 import streamlit as st
 import google.generativeai as genai
+import datetime
+import pandas as pd
 
-# --- 1. CONFIGURATION ---
+# --- 1. CONFIGURATION & STYLING ---
 st.set_page_config(
-    page_title="KonnectOps | Smart Edition",
+    page_title="Home Konnect HQ",
     page_icon="🏢",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# Professional UI Styling
+# Custom CSS for Professional Look
 st.markdown("""
-<style>
-    .main {background-color: #f4f6f9;}
-    .stButton>button {
-        width: 100%;
-        background-color: #002D62; 
-        color: white; 
-        border-radius: 8px;
-        height: 3em;
-        font-weight: bold;
-    }
-    .stTextInput>div>div>input {border-radius: 8px;}
-    h1, h2, h3 {color: #002D62;}
-</style>
+    <style>
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
+        header {visibility: hidden;}
+        
+        .stButton>button {
+            width: 100%;
+            background-color: #002D62;
+            color: white;
+            border-radius: 8px;
+            height: 3em;
+            font-weight: bold;
+            border: none;
+        }
+        .stButton>button:hover {
+            background-color: #004080;
+            color: white;
+        }
+    </style>
 """, unsafe_allow_html=True)
 
-# --- 2. SIDEBAR (Setup & Auto-Detect) ---
+# --- 2. SIDEBAR ---
 with st.sidebar:
-    # Logo Placeholder
     st.markdown("## 🏢 KonnectOps")
-    st.caption("Smart Model Auto-Detect System")
+    st.caption("Digital Operations Center")
     
-    api_key = st.text_input("🔑 Enter Google Gemini API Key", type="password")
-    
-    # Global variable to store the working model name
+    api_key = st.text_input("🔑 Google API Key", type="password")
     valid_model_name = None
 
     if api_key:
         try:
             genai.configure(api_key=api_key)
+            # Smart Auto-Detect Logic
+            all_models = list(genai.list_models())
+            text_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
             
-            # --- SMART AUTO-DETECT LOGIC ---
-            with st.spinner("Connecting to Google AI..."):
-                # 1. Ask Google: "What models can I use?"
-                all_models = list(genai.list_models())
-                
-                # 2. Filter: Keep only models that can generate text
-                text_models = [m.name for m in all_models if 'generateContent' in m.supported_generation_methods]
-                
-                if text_models:
-                    # 3. Selection Strategy: Prefer 'flash', otherwise take the first available
-                    valid_model_name = text_models[0] # Default to first one found
-                    
-                    # Try to find a specific 'flash' model if possible
-                    for m in text_models:
-                        if 'flash' in m and 'legacy' not in m:
-                            valid_model_name = m
-                            break
-                    
-                    st.success(f"🟢 Connected! Using: **{valid_model_name}**")
-                else:
-                    st.error("🔴 Key valid, but no text models found.")
-                
+            if text_models:
+                valid_model_name = text_models[0]
+                for m in text_models:
+                    if 'flash' in m and 'legacy' not in m:
+                        valid_model_name = m
+                        break
+                st.success(f"🟢 Connected! ({valid_model_name})")
+            else:
+                st.error("🔴 No text models found.")
         except Exception as e:
-            st.error(f"🔴 Connection Error: {e}")
+            st.error(f"🔴 Error: {e}")
     
     st.markdown("---")
-    st.info("v4.5 | Self-Healing Engine")
+    st.info("v5.0 | 2026 Ready")
 
-# --- 3. AI FUNCTION (The Brain) ---
+# --- 3. AI LOGIC ---
 def ask_gemini(prompt):
-    if not api_key:
-        return "⚠️ Please enter your API Key in the sidebar first."
-    if not valid_model_name:
-        return "⚠️ No valid model detected. Check your API Key."
-    
+    if not api_key or not valid_model_name:
+        return "⚠️ API Key missing or invalid."
     try:
-        # Use the auto-detected model name
         model = genai.GenerativeModel(valid_model_name)
         response = model.generate_content(prompt)
         return response.text
@@ -85,92 +77,124 @@ def ask_gemini(prompt):
 
 # --- 4. MAIN DASHBOARD ---
 st.title("🚀 Home Konnect Digital HQ")
-st.markdown("Your AI-powered real estate operations center.")
 
 tab1, tab2, tab3, tab4 = st.tabs([
     "📄 Landing Page Factory", 
     "✍️ Content Studio", 
-    "👨‍💻 Zoho Deluge Helper", 
-    "🎉 Event Planner"
+    "📅 Festival Calendar 2026",
+    "👨‍💻 Zoho Helper"
 ])
 
-# ====== TAB 1: LANDING PAGE FACTORY ======
+# ====== MODULE 1: LANDING PAGES ======
 with tab1:
     st.header("Landing Page Generator")
-    col1, col2 = st.columns(2)
-    with col1:
-        new_project = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
-        new_loc = st.text_input("Location", placeholder="e.g. Porur")
-        new_price = st.text_input("Price", placeholder="e.g. 85 Lakhs")
-        old_project = st.text_input("Placeholder Name", value="Casagrand Flagship")
-    with col2:
-        template = st.text_area("Paste Master HTML Code", height=200, help="Paste your source code here.")
-        
-    if st.button("Generate Landing Page Code"):
-        if template:
-            # Basic Text Replacement
-            final_code = template.replace(old_project, new_project)
-            final_code = final_code.replace("{PRICE}", new_price)
-            final_code = final_code.replace("{LOCATION}", new_loc)
+    c1, c2 = st.columns(2)
+    with c1:
+        project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
+        location = st.text_input("Location", placeholder="e.g. Porur")
+        price = st.text_input("Price", placeholder="e.g. 85 Lakhs")
+    with c2:
+        old_name = st.text_input("Placeholder to Replace", value="Casagrand Flagship")
+        html_code = st.text_area("Paste Master HTML Code", height=200)
+
+    if st.button("Generate Page Code"):
+        if html_code:
+            final_html = html_code.replace(old_name, project_name)
+            final_html = final_html.replace("{PRICE}", price)
+            final_html = final_html.replace("{LOCATION}", location)
             
-            # AI SEO Injection (Only if AI is ready)
             if api_key and valid_model_name:
-                with st.spinner("🤖 AI is writing unique SEO meta-tags..."):
-                    seo_prompt = f"Write a 160-character attractive SEO description for a real estate project named {new_project} in {new_loc}. Focus on ROI and Luxury."
-                    seo_desc = ask_gemini(seo_prompt)
-                    final_code = final_code.replace("{DESC}", seo_desc)
-                    st.toast("SEO Metadata Injected Successfully!")
+                seo = ask_gemini(f"Write a 150-char SEO description for {project_name} in {location}.")
+                final_html = final_html.replace("{DESC}", seo)
+                st.toast("SEO Added!")
             
-            st.success("Code Generated!")
-            st.download_button("⬇️ Download HTML File", final_code, f"{new_project.replace(' ','_')}.html", mime="text/html")
-        else:
-            st.warning("Please paste the HTML template first.")
+            st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
 
-# ====== TAB 2: CONTENT STUDIO ======
+# ====== MODULE 2: CONTENT STUDIO (Updated) ======
 with tab2:
-    st.header("Marketing Content Generator")
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        c_type = st.selectbox("Content Type", ["Instagram Carousel", "LinkedIn Post", "Blog Article", "Client Email"])
-    with col2:
-        topic = st.text_input("Topic / Property Details", placeholder="e.g. Why invest in OMR now? 3BHK, 90L")
+    st.header("Content Studio")
     
-    if st.button("Draft Content"):
-        if api_key:
-            with st.spinner("Thinking..."):
-                prompt = f"""
-                Act as Home Konnect Senior Marketing Manager (Chennai Real Estate).
-                Task: Write a {c_type} about {topic}.
-                Tone: Professional, Trustworthy, CRISIL-rated.
-                Format: Clean text, use emojis if social media.
-                """
-                result = ask_gemini(prompt)
-                st.text_area("Generated Draft:", value=result, height=400)
-                st.download_button("Download Text", result, "draft.txt")
+    mode = st.radio("Select Mode:", ["📝 Blog Post (From Title)", "📱 Social Media Post", "📧 Client Email"], horizontal=True)
+    
+    if mode == "📝 Blog Post (From Title)":
+        blog_title = st.text_input("Enter Blog Title", placeholder="e.g. Why OMR is the best investment for NRIs in 2026")
+        if st.button("Write Full Blog Post"):
+            if api_key:
+                with st.spinner("Writing article..."):
+                    prompt = f"""
+                    Act as a Senior Real Estate Content Writer for Home Konnect.
+                    Write a full blog post based on this title: "{blog_title}".
+                    
+                    Structure:
+                    1. Catchy Introduction
+                    2. 3-4 Key Points with Data/Trends
+                    3. Conclusion with Call to Action (Contact Home Konnect).
+                    
+                    Tone: Professional, Authoritative, SEO-friendly.
+                    """
+                    result = ask_gemini(prompt)
+                    st.markdown(result)
+                    st.download_button("Download Blog", result, "blog_post.txt")
+            else:
+                st.error("Please enter API Key.")
 
-# ====== TAB 3: ZOHO DELUGE HELPER ======
+    elif mode == "📱 Social Media Post":
+        topic = st.text_input("Topic", placeholder="e.g. New Launch in Anna Nagar")
+        platform = st.selectbox("Platform", ["Instagram Carousel", "LinkedIn Article", "Facebook Post"])
+        if st.button("Draft Social Post"):
+            if api_key:
+                result = ask_gemini(f"Write a {platform} about {topic}. Include emojis and hashtags.")
+                st.text_area("Draft:", value=result, height=300)
+
+    elif mode == "📧 Client Email":
+        query = st.text_area("Client Query", placeholder="Client asking about property management fees...")
+        if st.button("Draft Reply"):
+            if api_key:
+                result = ask_gemini(f"Write a polite professional email reply to: {query}")
+                st.text_area("Draft:", value=result, height=300)
+
+# ====== MODULE 3: FESTIVAL CALENDAR (New) ======
 with tab3:
-    st.header("Zoho Deluge Assistant")
-    st.info("Describe the automation you need, and I will write the Deluge code.")
-    task = st.text_area("What do you want to automate?", placeholder="e.g. When a Lead Status is updated to 'Closed Won', create an Invoice in Zoho Books.")
+    st.header("📅 Upcoming Indian Festivals (2026)")
+    st.caption("Plan your marketing campaigns ahead of time.")
     
-    if st.button("Write Deluge Script"):
+    # Static Data for 2026 (Major Festivals)
+    data = {
+        "Date": [
+            "Jan 14, 2026", "Jan 26, 2026", "Mar 04, 2026", 
+            "Mar 20, 2026", "Apr 14, 2026", "Aug 15, 2026", 
+            "Aug 26, 2026", "Sep 14, 2026", "Oct 20, 2026", 
+            "Nov 08, 2026", "Dec 25, 2026"
+        ],
+        "Festival": [
+            "Pongal / Makar Sankranti", "Republic Day", "Holi", 
+            "Ramzan (Eid-ul-Fitr) *", "Tamil New Year", "Independence Day", 
+            "Onam", "Ganesh Chaturthi", "Ayudha Puja / Dussehra", 
+            "Diwali (Deepavali)", "Christmas"
+        ],
+        "Day": [
+            "Wednesday", "Monday", "Wednesday", 
+            "Friday", "Tuesday", "Saturday", 
+            "Wednesday", "Monday", "Tuesday", 
+            "Sunday", "Friday"
+        ]
+    }
+    
+    df = pd.DataFrame(data)
+    st.table(df)
+    st.caption("* Dates for Islamic festivals are subject to moon sighting.")
+    
+    st.markdown("### 💡 Need a Campaign Idea?")
+    selected_fest = st.selectbox("Select Festival", df["Festival"])
+    if st.button("Generate Campaign Idea"):
         if api_key:
-            with st.spinner("Coding in Deluge..."):
-                prompt = f"Write a Zoho Deluge script to: {task}. Add comments explaining each line. Assume standard module names."
-                st.code(ask_gemini(prompt), language='java')
+            idea = ask_gemini(f"Suggest a creative real estate marketing campaign for '{selected_fest}' targeting Home Buyers in Chennai.")
+            st.write(idea)
 
-# ====== TAB 4: EVENT PLANNER ======
+# ====== MODULE 4: ZOHO HELPER ======
 with tab4:
-    st.header("Event Brainstorming")
-    col1, col2 = st.columns(2)
-    with col1:
-        month = st.selectbox("Month", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
-    with col2:
-        audience = st.selectbox("Target Audience", ["NRIs", "Investors", "First Time Buyers"])
-        
-    if st.button("Generate Event Ideas"):
+    st.header("Zoho Automation Assistant")
+    task = st.text_area("Describe automation task", placeholder="e.g. Send email when lead status is 'Hot'")
+    if st.button("Generate Script"):
         if api_key:
-            with st.spinner("Brainstorming ideas..."):
-                prompt = f"Suggest 3 creative real estate marketing events for {month} in Chennai targeting {audience}. Include event names and activities."
-                st.write(ask_gemini(prompt))
+            st.code(ask_gemini(f"Write Zoho Deluge script for: {task}"), language='java')
