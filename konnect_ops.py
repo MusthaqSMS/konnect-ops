@@ -11,18 +11,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for "Role-Based" Styling
+# Custom CSS for "Role-Based" Styling & Premium Icons
 st.markdown("""
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Global Font & Colors */
+        /* Global Font */
         html, body, [class*="css"] {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333333;
+            color: #1e293b;
         }
         
-        /* Main Background */
+        /* Premium Gradient Background */
         .stApp {
-            background-color: #f4f6f9;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
         }
 
         /* Hide Streamlit Default Branding */
@@ -35,75 +36,89 @@ st.markdown("""
             width: 100%;
             background-color: #002D62; /* Home Konnect Blue */
             color: white;
-            border-radius: 6px;
+            border-radius: 8px;
             height: 3em;
             font-weight: 600;
             border: none;
             transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .stButton>button:hover {
             background-color: #004080;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
             transform: translateY(-1px);
         }
         
-        /* Inputs & Text Areas */
-        .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-            border-radius: 6px;
-            border: 1px solid #ced4da;
+        /* Inputs & Text Areas - Card Style */
+        .stTextInput>div>div>input, .stTextArea>div>div>textarea, .stSelectbox>div>div>div {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
             padding: 10px;
             background-color: #ffffff;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
             border-color: #002D62;
-            box-shadow: 0 0 0 0.2rem rgba(0, 45, 98, 0.25);
+            box-shadow: 0 0 0 2px rgba(0, 45, 98, 0.1);
         }
         
         /* Status Container Styling */
         .stStatusWidget {
             border-radius: 10px;
-            border: 1px solid #e9ecef;
+            border: 1px solid #cbd5e1;
             background-color: #ffffff;
             padding: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         /* Sidebar Styling */
         [data-testid="stSidebar"] {
             background-color: #ffffff;
-            border-right: 1px solid #e9ecef;
+            border-right: 1px solid #e2e8f0;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.02);
         }
         
-        /* Role-Specific Headers */
-        .marketing-header {
+        /* Headings & Icons */
+        h1, h2, h3 {
             color: #002D62;
-            border-left: 5px solid #002D62;
-            padding-left: 10px;
-            font-family: 'Segoe UI', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.5px;
         }
-        .dev-header {
-            color: #d63384; /* Pink/Red for Dev */
-            border-left: 5px solid #d63384;
-            padding-left: 10px;
-            font-family: 'Consolas', 'Courier New', monospace;
-        }
-        .code-header {
-            color: #10b981; /* Green for Code */
-            border-left: 5px solid #10b981;
-            padding-left: 10px;
-            font-family: 'Consolas', 'Courier New', monospace;
-        }
+        .icon-blue { color: #002D62; margin-right: 8px; }
+        .icon-pink { color: #d63384; margin-right: 8px; }
+        .icon-green { color: #10b981; margin-right: 8px; }
         
+        /* Tab Styling */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 10px;
+            background-color: rgba(255,255,255,0.5);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 45px;
+            background-color: transparent;
+            border-radius: 6px;
+            color: #64748b;
+            font-weight: 600;
+            border: 1px solid transparent;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #ffffff;
+            color: #002D62;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 2. SIDEBAR: SYSTEM STATUS ---
 with st.sidebar:
-    st.markdown("### 🏢 KonnectOps")
-    st.caption("Digital Operations Center v7.0")
+    st.markdown("### <i class='fa-solid fa-building icon-blue'></i> KonnectOps", unsafe_allow_html=True)
+    st.caption("Digital Operations Center v7.5")
+    st.markdown("---")
     
-    api_key = st.text_input("🔑 Google API Key", type="password")
+    api_key = st.text_input("🔑 API Key", type="password", help="Google Gemini API Key")
     valid_model_name = None
 
     if api_key:
@@ -123,9 +138,12 @@ with st.sidebar:
                 
                 # VISIBLE CONNECTION STATUS
                 st.markdown(f"""
-                <div style='background-color: #d1fae5; padding: 10px; border-radius: 5px; border: 1px solid #10b981;'>
-                    <strong style='color: #065f46;'>🟢 API CONNECTED</strong><br>
-                    <span style='font-size: 12px; color: #047857;'>Model: {valid_model_name}</span>
+                <div style='background-color: #ecfdf5; padding: 12px; border-radius: 8px; border: 1px solid #10b981; margin-top: 10px;'>
+                    <i class="fa-solid fa-wifi" style='color: #059669;'></i> 
+                    <strong style='color: #065f46; margin-left: 5px;'>SYSTEM ONLINE</strong><br>
+                    <div style='font-size: 11px; color: #047857; margin-top: 4px; font-family: monospace;'>
+                        MODEL: {valid_model_name.split('/')[-1]}
+                    </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
@@ -137,7 +155,8 @@ with st.sidebar:
         st.info("Waiting for API Key...")
     
     st.markdown("---")
-    st.markdown("**Active Persona:**\n👨‍💼 Sr. Digital Marketing Exec")
+    st.markdown("**Active Persona:**")
+    st.markdown("<div style='display: flex; align-items: center;'><i class='fa-solid fa-user-tie icon-blue'></i> <span>Sr. Marketing Exec</span></div>", unsafe_allow_html=True)
 
 # --- 3. AI CORE FUNCTIONS (Robust Error Handling) ---
 def run_ai_task(prompt, task_desc="Processing"):
@@ -148,13 +167,13 @@ def run_ai_task(prompt, task_desc="Processing"):
         st.error("⚠️ System Offline: Please verify API Key.")
         return None
 
-    # Professional "Working" Indicator
-    with st.status(f"🤖 {task_desc}...", expanded=True) as status:
+    # Professional "Working" Indicator with Custom Icons
+    with st.status(f"⚙️ {task_desc}...", expanded=True) as status:
         try:
-            st.write("🔄 Connecting to Neural Network...")
+            st.write("🔄 Handshaking with Neural Network...")
             model = genai.GenerativeModel(valid_model_name)
             
-            st.write("🧠 Analyzing Context & Trends...")
+            st.write("🧠 Analyzing Context & Market Trends...")
             # Enforce the Persona in every call
             persona_prompt = f"""
             ROLE: Act as a Senior Digital Marketing Executive and Full Stack Developer for 'Home Konnect' (Chennai Real Estate).
@@ -163,7 +182,7 @@ def run_ai_task(prompt, task_desc="Processing"):
             """
             response = model.generate_content(persona_prompt)
             
-            st.write("✨ Polishing Output...")
+            st.write("✨ Finalizing & Polishing Output...")
             time.sleep(0.5) # UX pause for readability
             
             status.update(label="✅ Task Complete", state="complete", expanded=False)
@@ -175,30 +194,31 @@ def run_ai_task(prompt, task_desc="Processing"):
             return None
 
 # --- 4. MAIN APPLICATION ---
-st.title("🚀 Home Konnect Digital HQ")
+st.markdown("# <i class='fa-solid fa-rocket icon-blue'></i> Home Konnect Digital HQ", unsafe_allow_html=True)
 
+# Tabs with minimal emojis (icons are inside)
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📄 Landing Page (Dev)", 
-    "✍️ Content Studio (Mkt)", 
-    "🎨 Image Studio", 
-    "📅 Calendar",
-    "👨‍💻 Zoho Helper (Code)"
+    "Dev Console", 
+    "Content Studio", 
+    "Image Studio", 
+    "Calendar",
+    "Deluge IDE"
 ])
 
 # ====== TAB 1: LANDING PAGE FACTORY (Developer Mode) ======
 with tab1:
-    st.markdown('<h2 class="dev-header">&lt;Developer /&gt; Landing Page Console</h2>', unsafe_allow_html=True)
+    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-code"></i> Landing Page Console</h3>', unsafe_allow_html=True)
     st.info("Safe Mode: Replaces content while preserving exact HTML structure.")
     
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("### 🎯 Project Config")
+        st.markdown("#### <i class='fa-solid fa-bullseye'></i> Target Project", unsafe_allow_html=True)
         project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
         location = st.text_input("New Location", placeholder="e.g. Anna Nagar")
         price = st.text_input("New Price", placeholder="e.g. 1.5 Cr")
         
     with c2:
-        st.markdown("### 🔍 Search Parameters")
+        st.markdown("#### <i class='fa-solid fa-magnifying-glass'></i> Search & Replace", unsafe_allow_html=True)
         old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
         old_location = st.text_input("Old Location to Replace", value="Porur")
         old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
@@ -239,7 +259,7 @@ with tab1:
 
 # ====== TAB 2: CONTENT STUDIO (Marketing Mode) ======
 with tab2:
-    st.markdown('<h2 class="marketing-header">📢 Marketing Command Center</h2>', unsafe_allow_html=True)
+    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-pen-nib"></i> Marketing Command Center</h3>', unsafe_allow_html=True)
     content_mode = st.radio("Select Output:", ["📝 SEO Blog Post", "📱 Social Media Carousel", "📧 Client Email"], horizontal=True)
     
     if content_mode == "📝 SEO Blog Post":
@@ -278,7 +298,7 @@ with tab2:
 
 # ====== TAB 3: IMAGE STUDIO (NEW) ======
 with tab3:
-    st.header("🎨 AI Image Studio")
+    st.markdown('<h3 class="icon-blue"><i class="fa-solid fa-palette"></i> AI Image Studio</h3>', unsafe_allow_html=True)
     st.info("Generate prompts for Cover Images & Section Visuals.")
     
     img_topic = st.text_input("Describe the Image you need", placeholder="e.g. Luxury apartment living room with sea view in Chennai")
@@ -298,7 +318,7 @@ with tab3:
 
 # ====== TAB 4: FESTIVAL CALENDAR ======
 with tab4:
-    st.header("📅 2026 Marketing Calendar")
+    st.markdown('<h3 class="icon-blue"><i class="fa-regular fa-calendar-check"></i> 2026 Marketing Calendar</h3>', unsafe_allow_html=True)
     
     # Static Data
     data = {
@@ -316,7 +336,7 @@ with tab4:
 
 # ====== TAB 5: ZOHO HELPER (Programmer Mode) ======
 with tab5:
-    st.markdown('<h2 class="code-header">{ Deluge Scripting IDE }</h2>', unsafe_allow_html=True)
+    st.markdown('<h3 class="icon-green"><i class="fa-solid fa-terminal"></i> Deluge Scripting IDE</h3>', unsafe_allow_html=True)
     task = st.text_area("Logic Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
     
     if st.button("Compile Script"):
