@@ -163,7 +163,7 @@ if not st.session_state.model_name:
 
 # === VIEW 2: DASHBOARD ===
 else:
-    st.markdown(f"### Homekonnect Digital HQ", unsafe_allow_html=True)
+    st.markdown(f"### <i class='fa-solid fa-rocket' style='color:#002D62'></i> Homekonnect Digital HQ", unsafe_allow_html=True)
     st.caption(f"🟢 Online: {st.session_state.model_name.split('/')[-1]}")
 
     # TABS
