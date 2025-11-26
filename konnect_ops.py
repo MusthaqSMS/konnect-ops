@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for "Executive Dashboard" Look
+# Custom CSS for "Role-Based" Styling
 st.markdown("""
     <style>
         /* Global Font & Colors */
@@ -22,7 +22,7 @@ st.markdown("""
         
         /* Main Background */
         .stApp {
-            background-color: #f8f9fa;
+            background-color: #f4f6f9;
         }
 
         /* Hide Streamlit Default Branding */
@@ -35,7 +35,7 @@ st.markdown("""
             width: 100%;
             background-color: #002D62; /* Home Konnect Blue */
             color: white;
-            border-radius: 8px;
+            border-radius: 6px;
             height: 3em;
             font-weight: 600;
             border: none;
@@ -50,7 +50,7 @@ st.markdown("""
         
         /* Inputs & Text Areas */
         .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid #ced4da;
             padding: 10px;
             background-color: #ffffff;
@@ -74,40 +74,34 @@ st.markdown("""
             background-color: #ffffff;
             border-right: 1px solid #e9ecef;
         }
-        [data-testid="stSidebar"] .block-container {
-            padding-top: 2rem;
+        
+        /* Role-Specific Headers */
+        .marketing-header {
+            color: #002D62;
+            border-left: 5px solid #002D62;
+            padding-left: 10px;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .dev-header {
+            color: #d63384; /* Pink/Red for Dev */
+            border-left: 5px solid #d63384;
+            padding-left: 10px;
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        .code-header {
+            color: #10b981; /* Green for Code */
+            border-left: 5px solid #10b981;
+            padding-left: 10px;
+            font-family: 'Consolas', 'Courier New', monospace;
         }
         
-        /* Headings */
-        h1, h2, h3 {
-            color: #002D62;
-            font-weight: 700;
-        }
-        
-        /* Tab Styling */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 24px;
-        }
-        .stTabs [data-baseweb="tab"] {
-            height: 50px;
-            white-space: pre-wrap;
-            background-color: transparent;
-            border-radius: 4px 4px 0 0;
-            color: #495057;
-            font-weight: 600;
-        }
-        .stTabs [aria-selected="true"] {
-            background-color: transparent;
-            color: #002D62;
-            border-bottom: 3px solid #002D62;
-        }
     </style>
 """, unsafe_allow_html=True)
 
 # --- 2. SIDEBAR: SYSTEM STATUS ---
 with st.sidebar:
     st.markdown("### 🏢 KonnectOps")
-    st.caption("Digital Operations Center v6.0")
+    st.caption("Digital Operations Center v7.0")
     
     api_key = st.text_input("🔑 Google API Key", type="password")
     valid_model_name = None
@@ -126,11 +120,21 @@ with st.sidebar:
                     if 'flash' in m and 'legacy' not in m:
                         valid_model_name = m
                         break
-                st.success(f"🟢 System Online\nModel: `{valid_model_name}`")
+                
+                # VISIBLE CONNECTION STATUS
+                st.markdown(f"""
+                <div style='background-color: #d1fae5; padding: 10px; border-radius: 5px; border: 1px solid #10b981;'>
+                    <strong style='color: #065f46;'>🟢 API CONNECTED</strong><br>
+                    <span style='font-size: 12px; color: #047857;'>Model: {valid_model_name}</span>
+                </div>
+                """, unsafe_allow_html=True)
+                
             else:
                 st.error("🔴 No text models found on this key.")
         except Exception as e:
             st.error(f"🔴 Connection Failed")
+    else:
+        st.info("Waiting for API Key...")
     
     st.markdown("---")
     st.markdown("**Active Persona:**\n👨‍💼 Sr. Digital Marketing Exec")
@@ -174,35 +178,35 @@ def run_ai_task(prompt, task_desc="Processing"):
 st.title("🚀 Home Konnect Digital HQ")
 
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📄 Landing Page Factory", 
-    "✍️ Blog & Content", 
+    "📄 Landing Page (Dev)", 
+    "✍️ Content Studio (Mkt)", 
     "🎨 Image Studio", 
-    "📅 Festival Calendar",
-    "👨‍💻 Zoho Helper"
+    "📅 Calendar",
+    "👨‍💻 Zoho Helper (Code)"
 ])
 
-# ====== TAB 1: LANDING PAGE FACTORY ======
+# ====== TAB 1: LANDING PAGE FACTORY (Developer Mode) ======
 with tab1:
-    st.header("Landing Page Generator")
+    st.markdown('<h2 class="dev-header">&lt;Developer /&gt; Landing Page Console</h2>', unsafe_allow_html=True)
     st.info("Safe Mode: Replaces content while preserving exact HTML structure.")
     
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("### 🎯 New Project Details")
+        st.markdown("### 🎯 Project Config")
         project_name = st.text_input("New Project Name", placeholder="e.g. TVS Emerald Luxor")
         location = st.text_input("New Location", placeholder="e.g. Anna Nagar")
         price = st.text_input("New Price", placeholder="e.g. 1.5 Cr")
         
     with c2:
-        st.markdown("### 🔍 Find in HTML")
+        st.markdown("### 🔍 Search Parameters")
         old_name = st.text_input("Old Name to Replace", value="Casagrand Flagship")
         old_location = st.text_input("Old Location to Replace", value="Porur")
         old_price = st.text_input("Old Price to Replace", value="85 Lakhs")
-        old_about = st.text_area("Old Description (Optional)", height=68, help="Paste a paragraph from the old HTML. The AI will rewrite it for the new project.")
+        old_about = st.text_area("Old Description (Context)", height=68, help="Paste a paragraph from the old HTML. The AI will rewrite it for the new project.")
 
-    html_code = st.text_area("Paste Live HTML Code Here", height=200)
+    html_code = st.text_area("Source Code (HTML)", height=300, placeholder="<!-- Paste your live HTML code here -->")
 
-    if st.button("⚡ Build Page"):
+    if st.button("⚡ Build & Compile Page"):
         if html_code:
             # 1. Technical Swap (Safe Python String Replacement - Won't break divs)
             final_html = html_code.replace(old_name, project_name)
@@ -231,15 +235,15 @@ with tab1:
                 st.toast("SEO Metadata Injected!")
             
             st.success("Build Successful! HTML Structure Preserved.")
-            st.download_button("⬇️ Download HTML", final_html, f"{project_name}.html", mime="text/html")
+            st.download_button("⬇️ Download HTML Asset", final_html, f"{project_name}.html", mime="text/html")
 
-# ====== TAB 2: CONTENT STUDIO ======
+# ====== TAB 2: CONTENT STUDIO (Marketing Mode) ======
 with tab2:
-    st.header("Content Studio")
+    st.markdown('<h2 class="marketing-header">📢 Marketing Command Center</h2>', unsafe_allow_html=True)
     content_mode = st.radio("Select Output:", ["📝 SEO Blog Post", "📱 Social Media Carousel", "📧 Client Email"], horizontal=True)
     
     if content_mode == "📝 SEO Blog Post":
-        title = st.text_input("Blog Title", placeholder="e.g. Top 5 Investment Hotspots in Chennai 2026")
+        title = st.text_input("Blog Title Strategy", placeholder="e.g. Top 5 Investment Hotspots in Chennai 2026")
         if st.button("Draft Article"):
             prompt = f"""
             Write a comprehensive blog post for title: '{title}'.
@@ -254,7 +258,7 @@ with tab2:
             if result: st.markdown(result)
 
     elif content_mode == "📱 Social Media Carousel":
-        topic = st.text_input("Topic", placeholder="e.g. Why buy in OMR?")
+        topic = st.text_input("Campaign Topic", placeholder="e.g. Why buy in OMR?")
         if st.button("Design Carousel"):
             prompt = f"""
             Create a 5-Slide Instagram Carousel Script for: '{topic}'.
@@ -310,12 +314,12 @@ with tab4:
         result = run_ai_task(prompt, task_desc="Planning Campaign")
         if result: st.markdown(result)
 
-# ====== TAB 5: ZOHO HELPER ======
+# ====== TAB 5: ZOHO HELPER (Programmer Mode) ======
 with tab5:
-    st.header("Zoho Deluge Architect")
-    task = st.text_area("Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
+    st.markdown('<h2 class="code-header">{ Deluge Scripting IDE }</h2>', unsafe_allow_html=True)
+    task = st.text_area("Logic Requirement", placeholder="e.g. Auto-assign leads from OMR to Sales Agent 'Rahul'.")
     
-    if st.button("Code Script"):
+    if st.button("Compile Script"):
         prompt = f"Write a production-ready Zoho Deluge script for: {task}. Include error handling and comments."
         result = run_ai_task(prompt, task_desc="Compiling Code")
         if result: st.code(result, language='java')
