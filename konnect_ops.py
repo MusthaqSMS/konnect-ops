@@ -40,7 +40,7 @@ def ask_gemini(prompt):
     if not api_key:
         return "⚠️ Please enter your API Key in the sidebar first."
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash') # Free, fast model
+        model = genai.GenerativeModel('gemini-pro') # Free, fast model
         response = model.generate_content(prompt)
         return response.text
     except Exception as e:
